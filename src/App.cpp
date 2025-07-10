@@ -1,11 +1,28 @@
 #include "App.hpp"
 #include "GLFW/glfw3.h"
 #include <fstream>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <iostream>
 #include <math.h>
 #include <string>
 #include <glm/glm.hpp>
+#include <glm/ext.hpp> // perspective, translate, rotate
+#include "Model.hpp"
 
+struct shaderInfo {
+    std::string vertex_name;
+    std::string fragment_name;
+    GLuint vertexShader;
+    GLuint fragmentShader;
+    GLuint program;
+};
+
+Model model;
+Model model2;
+GLuint program1 = 0;
+GLuint program2 = 0;
 
 App::App(int window_width, int window_height)
 {
@@ -86,61 +103,94 @@ unsigned int compile_shader(shaderInfo &shaders){
 
 void App::init()
 {
+    // float vertices[] = { // NOLINT
+    //     -0.5f, -0.5f, 0.0f,
+    //      0.5f, -0.5f, 0.0f,
+    //      0.0f,  0.5f, 0.0f
+    // };  
+
     float vertices[] = { // NOLINT
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-         0.0f,  0.5f, 0.0f
+        -0.5f, 0.0f, -0.5f,
+         0.5f, 0.0f, -0.5f,
+         0.5f, 0.0f,  0.5f
     };  
 
-    _shaders.fragment_name = "src/shaders/shader.frag";
-    _shaders.vertex_name = "src/shaders/shader.vert";
-    _shaders.program = compile_shader(_shaders);
+    float floor[] = { // NOLINT
+        -1.0f, 0.0f, 1.0f,
+         -1.0f, 0.0f, -1.0f,
+         1.0f, 0.0f,  -1.0f,
 
-    unsigned int VAO = 0;
-    unsigned int VBO = 0;
-    glGenVertexArrays(1, &VAO);  
-    glBindVertexArray(VAO);
-    glGenBuffers(1, &VBO);  
-    // 2. copy our vertices array in a buffer for OpenGL to use
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // 3. then set our vertex attributes pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);  
+         1.0f, 0.0f,  1.0f,
+         -1.0f, 0.0f,  1.0f,
+         1.0f, 0.0f,  -1.0f
+    };
+    shaderInfo shaders;
 
-    // glBindVertexArray(VAO);
-    _VAO = VAO;
-    _VBO = VBO;
+    shaders.fragment_name = "src/shaders/shader.frag";
+    shaders.vertex_name = "src/shaders/shader.vert";
+    program1 = compile_shader(shaders);
+    shaders.fragment_name = "src/shaders/shaderBlack.frag";
+    program2 = compile_shader(shaders);
+
+    model.generateBuffers(floor, 6);
+    model2.generateBuffers(vertices, 3);
 }
 
 void App::render()
 {
-    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(_shaders.program);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     double timeValue = glfwGetTime();
     float greenValue = sin(timeValue) / 2.0f + 0.5f;
+    float angle = greenValue;
+    angle = 0.0f;
     
-    float rot[] = {cos(greenValue), -sin(greenValue), 0, 0,
-                   sin(greenValue), cos(greenValue),  0, 0,
+    float rot[] = {cos(angle), -sin(angle), 0, 0,
+                   sin(angle), cos(angle),  0, 0,
                    0,               0,                1, 0,
                    0,               0,                0, 1};
 
-    int num = -1;
+
+    float toRad = 0.0174532925;
+    glm::vec3 up = glm::vec3(0,1,0);
+    glm::vec3 center = glm::vec3(0,0,0);
+    glm::vec3 eye = glm::vec3(0,5,-10);
+    glm::mat4 view = glm::lookAt(eye, center, up);
+    glm::mat4 perspective = glm::perspectiveFov(45.0f * toRad, (float) _width, (float) _height, 0.1f, 20.0f);
+    glm::mat4 modelToWorld = glm::mat4(1000.0);
+    modelToWorld[3][3] = 1.0f;
+
+    glm::mat4 mvp = perspective * view * modelToWorld;
+
     // Set uniforms
-    int rotateLocation = glGetUniformLocation(_shaders.program, "rotate");
-    // glUniform4fv(rotateLocation, 1, rot);
+    int rotateLocation = glGetUniformLocation(program1, "rotate");
     glUniformMatrix4fv(rotateLocation, 1, false, rot);
-    int vertexColorLocation = glGetUniformLocation(_shaders.program, "outColor");
+
+    int mvpLocation = glGetUniformLocation(program1, "mvp");
+    glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
+
+    int vertexColorLocation = glGetUniformLocation(program1, "outColor");
     glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
-    glGetProgramiv(_shaders.program, GL_ACTIVE_UNIFORMS, &num);
-    std::cout << "Active uniforms \n" << num << std::endl;
+    // int num = -1;
+    // glGetProgramiv(_shaders.program, GL_ACTIVE_UNIFORMS, &num);
+    // std::cout << "Active uniforms \n" << num << std::endl;
 
-    glBindVertexArray(_VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    model.bind(program1);
+    model.draw();
+    // Set uniforms
+    // rotateLocation = glGetUniformLocation(program2, "rotate");
+    // glUniformMatrix4fv(rotateLocation, 1, false, rot);
+    //
+    // mvpLocation = glGetUniformLocation(program2, "mvp");
+    // glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
+    //
+    greenValue = 0.0;
+    vertexColorLocation = glGetUniformLocation(program1, "outColor");
+    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+    model2.bind(program1);
+    model2.draw();
 }
 
 void App::key_callback(int /*key*/, int /*scancode*/, int /*action*/, int /*mods*/)

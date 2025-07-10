@@ -2,6 +2,10 @@
 
 /*
    Returns a symmetric perspective matrix.
+
+   Symmetry gives
+   left = -right
+   bottom = -top
 */
 
 glm::mat4 perspective_matrix(float near, float far, float right, float top){
@@ -10,10 +14,7 @@ glm::mat4 perspective_matrix(float near, float far, float right, float top){
     float t = top;
     float r = right;
      
-    // Symmetric frustrum
-    float l = -r; // left
-    float b = -t; // bottom
-
+    // Symmetric frustrum means tihs is true
     glm::mat4 perspective = glm::mat4(
             n/r, 0, 0,           0,
             0, n/t, 0,           0,

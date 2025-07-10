@@ -4,13 +4,13 @@
 #include "glad/glad.h"
 #include <string>
 
-struct shaderInfo {
-    std::string vertex_name;
-    std::string fragment_name;
-    GLuint vertexShader;
-    GLuint fragmentShader;
-    GLuint program;
-};
+// struct shaderInfo {
+//     std::string vertex_name;
+//     std::string fragment_name;
+//     GLuint vertexShader;
+//     GLuint fragmentShader;
+//     GLuint program;
+// };
 
 class App {
 public:
@@ -24,8 +24,8 @@ public:
     void size_callback(int width, int height);
 
 private:
-    GLuint _VAO, _VBO;
-    shaderInfo _shaders;
+    // GLuint _VAO, _VBO;
+    // shaderInfo _shaders;
 
     int _width{};
     int _height{};
