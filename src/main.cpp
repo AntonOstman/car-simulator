@@ -1,4 +1,5 @@
 #include "App.hpp"
+#include <GLFW/glfw3.h>
 
 static App& get_app(GLFWwindow* window)
 {

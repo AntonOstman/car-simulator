@@ -1,26 +1,10 @@
 
 #include "glad/glad.h"
-#include <cstdio>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate
 #include "Model.hpp"
+#include "Debug.hpp"
 
-static GLenum lastError = 0;
-static char lastErrorFunction[1024] = "";
-
-void printError(const char *functionName)
-{
-   GLenum error;
-   while (( error = glGetError() ) != GL_NO_ERROR)
-   {
-       if ((lastError != error) || (strcmp(functionName, lastErrorFunction)))
-       {
-	       fprintf (stderr, "GL error 0x%X detected in %s\n", error, functionName);
-	       strcpy(lastErrorFunction, functionName);
-	       lastError = error;
-       }
-   }
-}
 
 void Model::generateBuffers(float* vertices, unsigned int num_vert)
 {
@@ -44,13 +28,17 @@ void Model::bind(GLuint program)
     printError("before Model::bind");
     glBindVertexArray(_VAO);
     glUseProgram(program); // Just in case
+
+    unsigned int loc = glGetAttribLocation(program, "in_Position");
     glBindBuffer(GL_ARRAY_BUFFER, _VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    glEnableVertexAttribArray(glGetAttribLocation(program, "in_Position"));
+    glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glEnableVertexAttribArray(loc);
     printError("Model::bind");
 }
 
 void Model::draw()
 {
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, _num_vert);
 }

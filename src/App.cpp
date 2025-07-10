@@ -4,12 +4,14 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
+#include <glm/trigonometric.hpp>
 #include <iostream>
 #include <math.h>
 #include <string>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate
 #include "Model.hpp"
+#include "Math.hpp"
 
 struct shaderInfo {
     std::string vertex_name;
@@ -152,18 +154,19 @@ void App::render()
                    0,               0,                0, 1};
 
 
-    float toRad = 0.0174532925;
     glm::vec3 up = glm::vec3(0,1,0);
     glm::vec3 center = glm::vec3(0,0,0);
     glm::vec3 eye = glm::vec3(0,5,-10);
     glm::mat4 view = glm::lookAt(eye, center, up);
-    glm::mat4 perspective = glm::perspectiveFov(45.0f * toRad, (float) _width, (float) _height, 0.1f, 20.0f);
+    glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
+    // glm::mat4 perspective = perspective_matrix(0.1, 20.0, 20.0, 20.0);
     glm::mat4 modelToWorld = glm::mat4(1000.0);
     modelToWorld[3][3] = 1.0f;
 
     glm::mat4 mvp = perspective * view * modelToWorld;
 
     // Set uniforms
+    model.bind(program1);
     int rotateLocation = glGetUniformLocation(program1, "rotate");
     glUniformMatrix4fv(rotateLocation, 1, false, rot);
 
@@ -173,23 +176,20 @@ void App::render()
     int vertexColorLocation = glGetUniformLocation(program1, "outColor");
     glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
-    // int num = -1;
-    // glGetProgramiv(_shaders.program, GL_ACTIVE_UNIFORMS, &num);
-    // std::cout << "Active uniforms \n" << num << std::endl;
-
-    model.bind(program1);
     model.draw();
+
     // Set uniforms
-    // rotateLocation = glGetUniformLocation(program2, "rotate");
-    // glUniformMatrix4fv(rotateLocation, 1, false, rot);
-    //
-    // mvpLocation = glGetUniformLocation(program2, "mvp");
-    // glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
-    //
-    greenValue = 0.0;
-    vertexColorLocation = glGetUniformLocation(program1, "outColor");
+    // glUseProgram(program2);
+    model2.bind(program2);
+    rotateLocation = glGetUniformLocation(program2, "rotate");
+    glUniformMatrix4fv(rotateLocation, 1, false, rot);
+
+    mvpLocation = glGetUniformLocation(program2, "mvp");
+    glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
+
+    // greenValue = 0.0;
+    vertexColorLocation = glGetUniformLocation(program2, "outColor");
     glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-    model2.bind(program1);
     model2.draw();
 }
 

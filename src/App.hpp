@@ -1,16 +1,8 @@
 #pragma once
 #define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
 #include "glad/glad.h"
 #include <string>
 
-// struct shaderInfo {
-//     std::string vertex_name;
-//     std::string fragment_name;
-//     GLuint vertexShader;
-//     GLuint fragmentShader;
-//     GLuint program;
-// };
 
 class App {
 public:
