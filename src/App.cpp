@@ -3,15 +3,8 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
-#include <array>
-#include <filesystem>
-namespace fs = std::filesystem;
-using shaderInfo = struct {
-    std::string vertex_name;
-    std::string fragment_name;
-    GLuint vertexShader;
-    GLuint fragmentShader;
-};
+#include <string>
+#include <glm/glm.hpp>
 
 
 App::App(int window_width, int window_height)
@@ -55,8 +48,8 @@ unsigned int compile_shader(shaderInfo &shaders){
 
     int  success = 0;
     char infoLog[512]; // NOLINT
-    glGetShaderiv(shaders.vertexShader, GL_COMPILE_STATUS, &success);
 
+    glGetShaderiv(shaders.vertexShader, GL_COMPILE_STATUS, &success);
     if(!success)
     {
         glGetShaderInfoLog(shaders.vertexShader, 512, nullptr, infoLog);
@@ -87,25 +80,21 @@ unsigned int compile_shader(shaderInfo &shaders){
     }
     glDeleteShader(shaders.vertexShader);
     glDeleteShader(shaders.fragmentShader);  
+
     return shaderProgram;
 }
 
-void App::render()
+void App::init()
 {
-
     float vertices[] = { // NOLINT
         -0.5f, -0.5f, 0.0f,
          0.5f, -0.5f, 0.0f,
          0.0f,  0.5f, 0.0f
     };  
 
-    // glClearColor(1.f, 0.5f, 0.5f, 1.f);
-    // glClear(GL_COLOR_BUFFER_BIT);
-    shaderInfo shaders;
-
-    shaders.fragment_name = "src/shaders/shader.frag";
-    shaders.vertex_name = "src/shaders/shader.vert";
-    GLuint program = compile_shader(shaders);
+    _shaders.fragment_name = "src/shaders/shader.frag";
+    _shaders.vertex_name = "src/shaders/shader.vert";
+    _shaders.program = compile_shader(_shaders);
 
     unsigned int VAO = 0;
     unsigned int VBO = 0;
@@ -119,36 +108,39 @@ void App::render()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);  
 
+    // glBindVertexArray(VAO);
+    _VAO = VAO;
+    _VBO = VBO;
+}
+
+void App::render()
+{
+    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    // glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(_shaders.program);
+
     double timeValue = glfwGetTime();
-    float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-
-    int vertexColorLocation = glGetUniformLocation(program, "ourColor");
-    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+    float greenValue = sin(timeValue) / 2.0f + 0.5f;
     
-    float rot[] = {cos(greenValue), -sin(greenValue),0,0,
-                   sin(greenValue), cos(greenValue),0,0,
-                   0,0,1,0,
-                   0,0,0,1};
+    float rot[] = {cos(greenValue), -sin(greenValue), 0, 0,
+                   sin(greenValue), cos(greenValue),  0, 0,
+                   0,               0,                1, 0,
+                   0,               0,                0, 1};
 
-    // float rot[] = {cos(greenValue), 0,-sin(greenValue),0,
-    //                0, 1,0,0,
-    //                sin(greenValue),0,cos(greenValue),0,
-    //                0,0,0,1};
-    // float a = greenValue
-    // float rot[] = {1,   0,         0,   0,
-    //                0,   cos(a), -sin(a),0,
-    //                0,   sin(a), cos(a), 0,
-    //                0,    0,       0,    1};
+    int num = -1;
+    // Set uniforms
+    int rotateLocation = glGetUniformLocation(_shaders.program, "rotate");
+    // glUniform4fv(rotateLocation, 1, rot);
+    glUniformMatrix4fv(rotateLocation, 1, false, rot);
+    int vertexColorLocation = glGetUniformLocation(_shaders.program, "outColor");
+    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
-    GLint MatrixID = glGetUniformLocation(program, "rotate");
-    glUniform4fv(MatrixID, 1, rot);
+    glGetProgramiv(_shaders.program, GL_ACTIVE_UNIFORMS, &num);
+    std::cout << "Active uniforms \n" << num << std::endl;
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(_VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
-    glUseProgram(program);
-    // 3. now draw the object 
-    // someOpenGLFunctionThatDrawsOurTriangle();   
-
 }
 
 void App::key_callback(int /*key*/, int /*scancode*/, int /*action*/, int /*mods*/)

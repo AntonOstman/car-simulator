@@ -59,6 +59,7 @@ int main()
     });
 
     /* Loop until the user closes the window */
+    app.init();
     while (!glfwWindowShouldClose(window)) {
         app.render();
 

@@ -2,11 +2,21 @@
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 #include "glad/glad.h"
+#include <string>
+
+struct shaderInfo {
+    std::string vertex_name;
+    std::string fragment_name;
+    GLuint vertexShader;
+    GLuint fragmentShader;
+    GLuint program;
+};
 
 class App {
 public:
     App(int window_width, int window_height);
     void render();
+    void init();
     void key_callback(int key, int scancode, int action, int mods);
     void mouse_button_callback(int button, int action, int mods);
     void scroll_callback(double xoffset, double yoffset);
@@ -14,6 +24,9 @@ public:
     void size_callback(int width, int height);
 
 private:
+    GLuint _VAO, _VBO;
+    shaderInfo _shaders;
+
     int _width{};
     int _height{};
 };
