@@ -1,10 +1,18 @@
 #pragma once
+#include <glm/ext/matrix_float4x4.hpp>
 #define GLFW_INCLUDE_NONE
 #include "glad/glad.h"
 #include <string>
 
 
+class Model;
+
 class App {
+public:
+private:
+    int _width{};
+    int _height{};
+
 public:
     App(int window_width, int window_height);
     void render();
@@ -16,9 +24,5 @@ public:
     void size_callback(int width, int height);
 
 private:
-    // GLuint _VAO, _VBO;
-    // shaderInfo _shaders;
-
-    int _width{};
-    int _height{};
+    void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& color);
 };

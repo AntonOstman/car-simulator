@@ -23,6 +23,9 @@ struct shaderInfo {
 
 Model model;
 Model model2;
+Model model3;
+Model model4;
+Model model5;
 GLuint program1 = 0;
 GLuint program2 = 0;
 
@@ -126,6 +129,29 @@ void App::init()
          -1.0f, 0.0f,  1.0f,
          1.0f, 0.0f,  -1.0f
     };
+
+    float cube[] = { // NOLINT
+        // Floor
+        -1.0f, 0.0f, 1.0f,
+         -1.0f, 0.0f, -1.0f,
+         1.0f, 0.0f,  -1.0f,
+
+         1.0f, 0.0f,  1.0f,
+         -1.0f, 0.0f,  1.0f,
+         1.0f, 0.0f,  -1.0f,
+
+        // Roof
+        -1.0f, 1.0f, 1.0f,
+         -1.0f, 1.0f, -1.0f,
+         1.0f, 1.0f,  -1.0f,
+
+         1.0f, 1.0f,  1.0f,
+         -1.0f, 1.0f,  1.0f,
+         1.0f, 1.0f,  -1.0f,
+
+    };
+
+
     shaderInfo shaders;
 
     shaders.fragment_name = "src/shaders/shader.frag";
@@ -136,6 +162,46 @@ void App::init()
 
     model.generateBuffers(floor, 6);
     model2.generateBuffers(vertices, 3);
+    model3.generateBuffers(cube, 3 * 4);
+    model4.generateBuffers(cube, 3 * 4);
+    model5.generateBuffers(cube, 3 * 4);
+}
+
+void App::bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& color)
+{
+
+    // Set uniforms and draw
+    model.bind(program);
+    int mvpLocation = glGetUniformLocation(program, "mvp");
+    glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
+
+    int vertexColorLocation = glGetUniformLocation(program, "outColor");
+    glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
+    model.draw();
+}
+
+glm::mat4 Rz(angle){
+    glm::mat4 rot = glm::mat4(cos(angle), -sin(angle), 0.0, 0.0,
+                                sin(angle), cos(angle),  0.0, 0.0,
+                                0.0,           0.0,      1.0, 0.0,
+                                0.0,           0.0,      0.0, 1.0);
+    return rot;
+}
+
+glm::mat4 Rx(angle){
+    glm::mat4 rot = glm::mat4(  1.0,    0.0,      0.0,        0.0,
+                                0.0, cos(angle), -sin(angle), 0.0,
+                                0.0, sin(angle), cos(angle),  0.0,
+                                0.0,      0.0,      0.0,      1.0);
+    return rot;
+}
+
+glm::mat4 Ry(angle){
+    glm::mat4 rot = glm::mat4(cos(angle), 0.0, -sin(angle), 0.0,
+                              0.0,        1.0,   0.0,       0.0,
+                              sin(angle), 0.0,  cos(angle), 0.0,
+                              0.0,        0.0,    0.0,      1.0);
+    return rot;
 }
 
 void App::render()
@@ -148,10 +214,10 @@ void App::render()
     float angle = greenValue;
     angle = 0.0f;
     
-    float rot[] = {cos(angle), -sin(angle), 0, 0,
-                   sin(angle), cos(angle),  0, 0,
-                   0,               0,                1, 0,
-                   0,               0,                0, 1};
+    // glm::mat4 rot = glm::mat4(cos(angle), -sin(angle), 0.0, 0.0,
+    //                             sin(angle), cos(angle),  0.0, 0.0,
+    //                             0.0,           0.0,      1.0, 0.0,
+    //                             0.0,           0.0,      0.0, 1.0);
 
 
     glm::vec3 up = glm::vec3(0,1,0);
@@ -159,38 +225,32 @@ void App::render()
     glm::vec3 eye = glm::vec3(0,5,-10);
     glm::mat4 view = glm::lookAt(eye, center, up);
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
-    // glm::mat4 perspective = perspective_matrix(0.1, 20.0, 20.0, 20.0);
-    glm::mat4 modelToWorld = glm::mat4(1000.0);
-    modelToWorld[3][3] = 1.0f;
 
+    glm::mat4 rot = Rz(0.0);
+    glm::mat4 modelToWorld = glm::mat4(1000.0) * rot;
+    modelToWorld[3][3] = 1.0f;
     glm::mat4 mvp = perspective * view * modelToWorld;
 
-    // Set uniforms
-    model.bind(program1);
-    int rotateLocation = glGetUniformLocation(program1, "rotate");
-    glUniformMatrix4fv(rotateLocation, 1, false, rot);
+    // floor
+    bindAndDrawModel(model, program1, mvp, greenValue);
 
-    int mvpLocation = glGetUniformLocation(program1, "mvp");
-    glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
 
-    int vertexColorLocation = glGetUniformLocation(program1, "outColor");
-    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+    // Cube
+    modelToWorld = glm::mat4(1.0) * rot;
+    modelToWorld[3][3] = 1.0f;
+    mvp = perspective * view * modelToWorld;
 
-    model.draw();
+    bindAndDrawModel(model3, program2, mvp, greenValue);
+    modelToWorld = glm::mat4(1.0) * rot;
+    modelToWorld[3][3] = 1.0f;
+    mvp = perspective * view * modelToWorld;
 
-    // Set uniforms
-    // glUseProgram(program2);
-    model2.bind(program2);
-    rotateLocation = glGetUniformLocation(program2, "rotate");
-    glUniformMatrix4fv(rotateLocation, 1, false, rot);
+    bindAndDrawModel(model4, program2, mvp, greenValue);
+    modelToWorld = glm::mat4(1.0) * rot;
+    modelToWorld[3][3] = 1.0f;
+    mvp = perspective * view * modelToWorld;
 
-    mvpLocation = glGetUniformLocation(program2, "mvp");
-    glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
-
-    // greenValue = 0.0;
-    vertexColorLocation = glGetUniformLocation(program2, "outColor");
-    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-    model2.draw();
+    bindAndDrawModel(model5, program2, mvp, greenValue);
 }
 
 void App::key_callback(int /*key*/, int /*scancode*/, int /*action*/, int /*mods*/)
