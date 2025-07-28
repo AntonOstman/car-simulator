@@ -43,6 +43,7 @@ int main()
 
     /* Hook user inputs to the App */
     glfwSetWindowUserPointer(window, reinterpret_cast<void*>(&app)); // NOLINT
+
     glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
         get_app(window).key_callback(key, scancode, action, mods);
     });

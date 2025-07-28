@@ -22,7 +22,4 @@ public:
     void scroll_callback(double xoffset, double yoffset);
     void cursor_position_callback(double xpos, double ypos);
     void size_callback(int width, int height);
-
-private:
-    void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& color);
 };

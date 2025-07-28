@@ -12,6 +12,10 @@
 #include <glm/ext.hpp> // perspective, translate, rotate
 #include "Model.hpp"
 #include "Math.hpp"
+#include "glm/ext/quaternion_common.hpp"
+#include "glm/ext/quaternion_float.hpp"
+#include "glm/ext/quaternion_trigonometric.hpp"
+#include "glm/ext/vector_float4.hpp"
 
 struct shaderInfo {
     std::string vertex_name;
@@ -20,6 +24,10 @@ struct shaderInfo {
     GLuint fragmentShader;
     GLuint program;
 };
+
+glm::mat4 cuberot;
+glm::mat4 cameraRot = glm::mat4(1.0);
+glm::mat4 cameraTrans = glm::mat4(1.0);
 
 Model model;
 Model model2;
@@ -47,8 +55,8 @@ std::string read_file(std::string &filename){
         buffer.append(line);
     }
     file.close();
-    std::cout << buffer << std::endl;
-    std::cout << "^^ outputted filed ^^" << std::endl;
+    // std::cout << buffer << std::endl;
+    // std::cout << "^^ outputted filed ^^" << std::endl;
 
     return buffer;
 }
@@ -108,11 +116,6 @@ unsigned int compile_shader(shaderInfo &shaders){
 
 void App::init()
 {
-    // float vertices[] = { // NOLINT
-    //     -0.5f, -0.5f, 0.0f,
-    //      0.5f, -0.5f, 0.0f,
-    //      0.0f,  0.5f, 0.0f
-    // };  
 
     float vertices[] = { // NOLINT
         -0.5f, 0.0f, -0.5f,
@@ -132,22 +135,22 @@ void App::init()
 
     float cube[] = { // NOLINT
         // Floor
-        -1.0f, 0.0f, 1.0f,
-         -1.0f, 0.0f, -1.0f,
-         1.0f, 0.0f,  -1.0f,
-
-         1.0f, 0.0f,  1.0f,
-         -1.0f, 0.0f,  1.0f,
-         1.0f, 0.0f,  -1.0f,
+        -1.0f,  -1.0f, 1.0f,
+         -1.0f, -1.0f, -1.0f,
+         1.0f,  -1.0f, -1.0f,
+                    
+         1.0f,  -1.0f,  1.0f,
+         -1.0f, -1.0f,  1.0f,
+         1.0f,  -1.0f,  -1.0f,
 
         // Roof
-        -1.0f, 1.0f, 1.0f,
+        -1.0f,  1.0f, 1.0f,
          -1.0f, 1.0f, -1.0f,
-         1.0f, 1.0f,  -1.0f,
+         1.0f,  1.0f, -1.0f,
 
-         1.0f, 1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
          -1.0f, 1.0f,  1.0f,
-         1.0f, 1.0f,  -1.0f,
+         1.0f,  1.0f,  -1.0f,
 
     };
 
@@ -165,9 +168,10 @@ void App::init()
     model3.generateBuffers(cube, 3 * 4);
     model4.generateBuffers(cube, 3 * 4);
     model5.generateBuffers(cube, 3 * 4);
+    cuberot = glm::mat4(1.0);
 }
 
-void App::bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& color)
+void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& color)
 {
 
     // Set uniforms and draw
@@ -180,15 +184,17 @@ void App::bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4&
     model.draw();
 }
 
-glm::mat4 Rz(angle){
+glm::mat4 Rz(float angle){
+    angle = glm::radians(angle);
     glm::mat4 rot = glm::mat4(cos(angle), -sin(angle), 0.0, 0.0,
-                                sin(angle), cos(angle),  0.0, 0.0,
-                                0.0,           0.0,      1.0, 0.0,
-                                0.0,           0.0,      0.0, 1.0);
+                              sin(angle), cos(angle),  0.0, 0.0,
+                              0.0,           0.0,      1.0, 0.0,
+                              0.0,           0.0,      0.0, 1.0);
     return rot;
 }
 
-glm::mat4 Rx(angle){
+glm::mat4 Rx(float angle){
+    angle = glm::radians(angle);
     glm::mat4 rot = glm::mat4(  1.0,    0.0,      0.0,        0.0,
                                 0.0, cos(angle), -sin(angle), 0.0,
                                 0.0, sin(angle), cos(angle),  0.0,
@@ -196,12 +202,40 @@ glm::mat4 Rx(angle){
     return rot;
 }
 
-glm::mat4 Ry(angle){
-    glm::mat4 rot = glm::mat4(cos(angle), 0.0, -sin(angle), 0.0,
-                              0.0,        1.0,   0.0,       0.0,
-                              sin(angle), 0.0,  cos(angle), 0.0,
-                              0.0,        0.0,    0.0,      1.0);
+glm::mat4 Ry(float angle){
+    angle = glm::radians(angle);
+    glm::mat4 rot = glm::mat4(cos(angle),  0.0, sin(angle),  0.0,
+                              0.0,         1.0,   0.0,       0.0,
+                              -sin(angle), 0.0,  cos(angle), 0.0,
+                              0.0,         0.0,   0.0,       1.0);
     return rot;
+}
+
+glm::mat4 scaled_eye(float scale){
+    glm::mat4 eye = glm::mat4(scale, 0.0,    0.0,   0.0,
+                              0.0,   scale,  0.0,   0.0,
+                              0.0,   0.0,    scale, 0.0,
+                              0.0,   0.0,    0.0,   1.0);
+    return eye;
+}
+
+void drawCube(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
+
+    // top and bottom
+    float color = 0.0;
+    glm::mat4 mvp = worldToPerspective * modelToWorld;
+    bindAndDrawModel(model3, program2, mvp, color);
+
+    // Rotate top and bottom to create a cube
+    // first side
+    mvp = worldToPerspective * modelToWorld * Rx(90.0);
+    bindAndDrawModel(model4, program2, mvp, color);
+
+    // second side
+    mvp = worldToPerspective * modelToWorld * Ry(90.0) * Rx(90.0);;
+    bindAndDrawModel(model5, program2, mvp, color);
+    // ----- Cube -----
+
 }
 
 void App::render()
@@ -212,49 +246,51 @@ void App::render()
     double timeValue = glfwGetTime();
     float greenValue = sin(timeValue) / 2.0f + 0.5f;
     float angle = greenValue;
-    angle = 0.0f;
-    
-    // glm::mat4 rot = glm::mat4(cos(angle), -sin(angle), 0.0, 0.0,
-    //                             sin(angle), cos(angle),  0.0, 0.0,
-    //                             0.0,           0.0,      1.0, 0.0,
-    //                             0.0,           0.0,      0.0, 1.0);
-
+    cuberot = Ry(glm::degrees(angle));
+    greenValue = 1.0;
 
     glm::vec3 up = glm::vec3(0,1,0);
     glm::vec3 center = glm::vec3(0,0,0);
     glm::vec3 eye = glm::vec3(0,5,-10);
-    glm::mat4 view = glm::lookAt(eye, center, up);
+    glm::mat4 lookAt = glm::lookAt(eye, center, up);
+    glm::mat4 view = cameraRot * lookAt * cameraTrans * cuberot;
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
 
-    glm::mat4 rot = Rz(0.0);
-    glm::mat4 modelToWorld = glm::mat4(1000.0) * rot;
-    modelToWorld[3][3] = 1.0f;
+    glm::mat4 modelToWorld = scaled_eye(1000.0);
     glm::mat4 mvp = perspective * view * modelToWorld;
 
-    // floor
+    // ----- floor -----
     bindAndDrawModel(model, program1, mvp, greenValue);
-
-
-    // Cube
-    modelToWorld = glm::mat4(1.0) * rot;
-    modelToWorld[3][3] = 1.0f;
-    mvp = perspective * view * modelToWorld;
-
-    bindAndDrawModel(model3, program2, mvp, greenValue);
-    modelToWorld = glm::mat4(1.0) * rot;
-    modelToWorld[3][3] = 1.0f;
-    mvp = perspective * view * modelToWorld;
-
-    bindAndDrawModel(model4, program2, mvp, greenValue);
-    modelToWorld = glm::mat4(1.0) * rot;
-    modelToWorld[3][3] = 1.0f;
-    mvp = perspective * view * modelToWorld;
-
-    bindAndDrawModel(model5, program2, mvp, greenValue);
+    // ----- floor -----
+    modelToWorld = scaled_eye(1.0);
+    // ----- Cube -----
+    drawCube(modelToWorld, perspective * view);
+    drawCube(glm::translate(modelToWorld, glm::vec3(0,3.1,0)), perspective * view);
+    drawCube(glm::translate(modelToWorld, glm::vec3(3,0,0)), perspective * view);
+    // ----- Cube -----
 }
 
-void App::key_callback(int /*key*/, int /*scancode*/, int /*action*/, int /*mods*/)
+
+void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
 {
+    if (key == GLFW_KEY_W)
+    {
+        cameraTrans = glm::translate(cameraTrans, glm::vec3(0, 0, -0.1));
+    }
+    if (key == GLFW_KEY_S)
+    {
+        cameraTrans = glm::translate(cameraTrans, glm::vec3(0, 0, 0.1));
+    }
+
+    if (key == GLFW_KEY_A)
+    {
+        cameraTrans = glm::translate(cameraTrans, glm::vec3(-0.1, 0, 0));
+    }
+
+    if (key == GLFW_KEY_D)
+    {
+        cameraTrans = glm::translate(cameraTrans, glm::vec3(0.1, 0, 0));
+    }
 }
 
 void App::mouse_button_callback(int /*button*/, int /*action*/, int /*mods*/)
@@ -265,8 +301,48 @@ void App::scroll_callback(double /*xoffset*/, double /*yoffset*/)
 {
 }
 
-void App::cursor_position_callback(double /*xpos*/, double /*ypos*/)
+double prev_xpos = 0;
+double prev_ypos = 0;
+double cury = 0;
+double curx = 0;
+bool inited = false;
+
+void App::cursor_position_callback(double xpos, double ypos)
 {
+    if (!inited)
+    {
+        inited = true;
+        prev_xpos = xpos;
+        prev_ypos = ypos;
+    }
+
+    // camera = glm::rotate(const mat<4, 4, T, Q> &m, T angle, const vec<3, T, Q> &axis)
+    cury += prev_ypos - ypos;
+    curx += prev_xpos - xpos;
+    if (abs(cury) > 40)
+    {
+        cury -= prev_ypos - ypos;
+    }
+    // if (abs(curx) > 20)
+    // {
+    //     curx -= prev_xpos - xpos;
+    // }
+    // glm::vec3 upbefore = glm::vec3(cameraRot[1]);
+
+    // cameraRot = glm::rotate(glm::mat4(1.0), (float)glm::radians(cury), glm::vec3(1, 0, 0));
+    // glm::vec3 upafter = glm::vec3(cameraRot[1]);
+    // cameraRot = glm::rotate(cameraRot, (float)glm::radians(curx), upafter);
+
+    glm::quat pitch = glm::angleAxis((float)glm::radians(cury), glm::vec3(1,0,0));
+    glm::quat yaw = glm::angleAxis((float)glm::radians(curx), glm::vec3(0,1,0));
+    glm::quat rot = pitch * yaw;
+
+    cameraRot = glm::mat4(rot);
+    // cameraRot[1] = pitch * cameraRot[1];
+    // cameraRot[0] = yaw * cameraRot[0];
+
+    prev_xpos = xpos;
+    prev_ypos = ypos;
 }
 
 void App::size_callback(int width, int height)
