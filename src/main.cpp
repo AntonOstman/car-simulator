@@ -1,3 +1,4 @@
+#define GLM_SWIZZLE
 #include "App.hpp"
 #include <GLFW/glfw3.h>
 

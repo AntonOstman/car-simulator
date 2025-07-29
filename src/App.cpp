@@ -249,9 +249,9 @@ void App::render()
     cuberot = Ry(glm::degrees(angle));
     greenValue = 1.0;
 
-    glm::vec3 up = glm::vec3(0,1,0);
-    glm::vec3 center = glm::vec3(0,0,0);
-    glm::vec3 eye = glm::vec3(0,5,-10);
+    glm::vec3 up = glm::vec3(0, 1, 0);
+    glm::vec3 center = glm::vec3(0, 0, 0);
+    glm::vec3 eye = glm::vec3(0, 0, -10);
     glm::mat4 lookAt = glm::lookAt(eye, center, up);
     glm::mat4 view = cameraRot * lookAt * cameraTrans * cuberot;
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
@@ -291,6 +291,15 @@ void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
     {
         cameraTrans = glm::translate(cameraTrans, glm::vec3(0.1, 0, 0));
     }
+
+    if (key == GLFW_KEY_Y)
+    {
+        cameraTrans = glm::translate(cameraTrans, glm::vec3(0, -0.1, 0));
+    }
+    if (key == GLFW_KEY_U)
+    {
+        cameraTrans = glm::translate(cameraTrans, glm::vec3(0, 0.1, 0));
+    }
 }
 
 void App::mouse_button_callback(int /*button*/, int /*action*/, int /*mods*/)
@@ -323,23 +332,12 @@ void App::cursor_position_callback(double xpos, double ypos)
     {
         cury -= prev_ypos - ypos;
     }
-    // if (abs(curx) > 20)
-    // {
-    //     curx -= prev_xpos - xpos;
-    // }
-    // glm::vec3 upbefore = glm::vec3(cameraRot[1]);
-
-    // cameraRot = glm::rotate(glm::mat4(1.0), (float)glm::radians(cury), glm::vec3(1, 0, 0));
-    // glm::vec3 upafter = glm::vec3(cameraRot[1]);
-    // cameraRot = glm::rotate(cameraRot, (float)glm::radians(curx), upafter);
 
     glm::quat pitch = glm::angleAxis((float)glm::radians(cury), glm::vec3(1,0,0));
     glm::quat yaw = glm::angleAxis((float)glm::radians(curx), glm::vec3(0,1,0));
     glm::quat rot = pitch * yaw;
 
     cameraRot = glm::mat4(rot);
-    // cameraRot[1] = pitch * cameraRot[1];
-    // cameraRot[0] = yaw * cameraRot[0];
 
     prev_xpos = xpos;
     prev_ypos = ypos;
