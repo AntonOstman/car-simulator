@@ -11,11 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate
 #include "Model.hpp"
-#include "Math.hpp"
-#include "glm/ext/quaternion_common.hpp"
-#include "glm/ext/quaternion_float.hpp"
-#include "glm/ext/quaternion_trigonometric.hpp"
-#include "glm/ext/vector_float4.hpp"
+#include "Camera.hpp"
 
 struct shaderInfo {
     std::string vertex_name;
@@ -26,8 +22,7 @@ struct shaderInfo {
 };
 
 glm::mat4 cuberot;
-glm::mat4 cameraRot = glm::mat4(1.0);
-glm::mat4 cameraTrans = glm::mat4(1.0);
+Camera camera;
 
 Model model;
 Model model2;
@@ -249,11 +244,7 @@ void App::render()
     cuberot = Ry(glm::degrees(angle));
     greenValue = 1.0;
 
-    glm::vec3 up = glm::vec3(0, 1, 0);
-    glm::vec3 center = glm::vec3(0, 0, 0);
-    glm::vec3 eye = glm::vec3(0, 0, -10);
-    glm::mat4 lookAt = glm::lookAt(eye, center, up);
-    glm::mat4 view = cameraRot * lookAt * cameraTrans * cuberot;
+    glm::mat4 view = camera.getView();
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
 
     glm::mat4 modelToWorld = scaled_eye(1000.0);
@@ -273,32 +264,33 @@ void App::render()
 
 void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
 {
+    float speed = 0.1;
     if (key == GLFW_KEY_W)
     {
-        cameraTrans = glm::translate(cameraTrans, glm::vec3(0, 0, -0.1));
+        camera.moveForward(speed);
     }
     if (key == GLFW_KEY_S)
     {
-        cameraTrans = glm::translate(cameraTrans, glm::vec3(0, 0, 0.1));
+        camera.moveBack(speed);
     }
 
     if (key == GLFW_KEY_A)
     {
-        cameraTrans = glm::translate(cameraTrans, glm::vec3(-0.1, 0, 0));
+        camera.moveLeft(speed);
     }
 
     if (key == GLFW_KEY_D)
     {
-        cameraTrans = glm::translate(cameraTrans, glm::vec3(0.1, 0, 0));
+        camera.moveRight(speed);
     }
 
     if (key == GLFW_KEY_Y)
     {
-        cameraTrans = glm::translate(cameraTrans, glm::vec3(0, -0.1, 0));
+        camera.moveUp(speed);
     }
     if (key == GLFW_KEY_U)
     {
-        cameraTrans = glm::translate(cameraTrans, glm::vec3(0, 0.1, 0));
+        camera.moveDown(speed);
     }
 }
 
@@ -312,8 +304,6 @@ void App::scroll_callback(double /*xoffset*/, double /*yoffset*/)
 
 double prev_xpos = 0;
 double prev_ypos = 0;
-double cury = 0;
-double curx = 0;
 bool inited = false;
 
 void App::cursor_position_callback(double xpos, double ypos)
@@ -326,21 +316,10 @@ void App::cursor_position_callback(double xpos, double ypos)
     }
 
     // camera = glm::rotate(const mat<4, 4, T, Q> &m, T angle, const vec<3, T, Q> &axis)
-    cury += prev_ypos - ypos;
-    curx += prev_xpos - xpos;
-    if (abs(cury) > 40)
-    {
-        cury -= prev_ypos - ypos;
-    }
+    double dx = prev_xpos - xpos;
+    double dy = prev_ypos - ypos;
 
-    glm::quat pitch = glm::angleAxis((float)glm::radians(cury), glm::vec3(1,0,0));
-    glm::quat yaw = glm::angleAxis((float)glm::radians(curx), glm::vec3(0,1,0));
-    glm::quat rot = pitch * yaw;
-
-    cameraRot = glm::mat4(rot);
-
-    prev_xpos = xpos;
-    prev_ypos = ypos;
+    camera.rotateRelative(glm::vec2(dx, dy));
 }
 
 void App::size_callback(int width, int height)
