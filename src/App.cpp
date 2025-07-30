@@ -12,6 +12,7 @@
 #include <glm/ext.hpp> // perspective, translate, rotate
 #include "Model.hpp"
 #include "Camera.hpp"
+#include "glm/matrix.hpp"
 
 struct shaderInfo {
     std::string vertex_name;
@@ -31,6 +32,7 @@ Model model4;
 Model model5;
 GLuint program1 = 0;
 GLuint program2 = 0;
+
 
 App::App(int window_width, int window_height)
 {
@@ -244,20 +246,20 @@ void App::render()
     cuberot = Ry(glm::degrees(angle));
     greenValue = 1.0;
 
-    glm::mat4 view = camera.getView();
+    glm::mat4 worldToView = glm::inverse(camera.getViewToWorld());
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
 
     glm::mat4 modelToWorld = scaled_eye(1000.0);
-    glm::mat4 mvp = perspective * view * modelToWorld;
+    glm::mat4 mvp = perspective * worldToView * modelToWorld;
 
     // ----- floor -----
     bindAndDrawModel(model, program1, mvp, greenValue);
     // ----- floor -----
     modelToWorld = scaled_eye(1.0);
     // ----- Cube -----
-    drawCube(modelToWorld, perspective * view);
-    drawCube(glm::translate(modelToWorld, glm::vec3(0,3.1,0)), perspective * view);
-    drawCube(glm::translate(modelToWorld, glm::vec3(3,0,0)), perspective * view);
+    drawCube(modelToWorld, perspective * worldToView);
+    drawCube(glm::translate(modelToWorld, glm::vec3(0,3.1,0)), perspective * worldToView);
+    drawCube(glm::translate(modelToWorld, glm::vec3(3,0,0)), perspective * worldToView);
     // ----- Cube -----
 }
 
@@ -316,10 +318,14 @@ void App::cursor_position_callback(double xpos, double ypos)
     }
 
     // camera = glm::rotate(const mat<4, 4, T, Q> &m, T angle, const vec<3, T, Q> &axis)
-    double dx = prev_xpos - xpos;
-    double dy = prev_ypos - ypos;
+    double dx = (prev_xpos - xpos);
+    double dy = (prev_ypos - ypos);
+    std::cout << dx << std::endl;
+    std::cout << dy << std::endl;
 
     camera.rotateRelative(glm::vec2(dx, dy));
+    prev_xpos = xpos;
+    prev_ypos = ypos;
 }
 
 void App::size_callback(int width, int height)

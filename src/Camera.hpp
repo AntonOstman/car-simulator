@@ -8,6 +8,8 @@ public:
 private:
     glm::mat4 _view;
     glm::vec2 _cur_angle;
+    glm::mat4 _rotation;
+    glm::mat4 _translation;
 
 public:
     Camera();
@@ -18,7 +20,7 @@ public:
     void translate(glm::vec3 translation);
 
     void transform(glm::mat4 transform);
-    glm::mat4 getView();
+    glm::mat4 getViewToWorld();
     void moveForward(float speed);
     void rotate(double anglex, double angley);
     void moveBack(float speed);
@@ -28,5 +30,6 @@ public:
     void moveUp(float speed);
     void moveDown(float speed);
 private:
+    void currentRotation();
 
 };
