@@ -8,12 +8,13 @@
 
 glm::mat4 lookAt(glm::vec3 up, glm::vec3 eye, glm::vec3 center)
 {
-    glm::vec3 forward = glm::normalize(eye - center);
+    glm::vec3 forward = glm::normalize(center - eye);
     glm::vec3 right = glm::normalize(glm::cross(up, forward));
+    glm::vec3 up2 = glm::normalize(glm::cross(forward, right)); // Recompute up to make sure orthagonal
     glm::mat4 lookAt = glm::mat4(1.0);
 
     lookAt[0] = glm::vec4(right, 0);
-    lookAt[1] = glm::vec4(up, 0);
+    lookAt[1] = glm::vec4(up2, 0);
     lookAt[2] = glm::vec4(forward, 0);
     lookAt[3] = glm::vec4(eye, 1.0);
     return lookAt;
@@ -22,14 +23,17 @@ glm::mat4 lookAt(glm::vec3 up, glm::vec3 eye, glm::vec3 center)
 Camera::Camera()
 {
     glm::vec3 up = glm::vec3(0, 1, 0);
-    glm::vec3 eye = glm::vec3(0, 0, 10);
+    glm::vec3 eye = glm::vec3(0, 0, -10);
     glm::vec3 lookTowards = glm::vec3(0, 0, 0);
-    _rotation = glm::mat4(1.0);
-    _translation = glm::mat4(1.0);
 
     _cur_angle = glm::vec2(0, 0);
     _view = lookAt(up, eye, lookTowards);
+    // _view = glm::lookAt(eye, lookTowards, up);
 }
+
+/*
+   Returns the view to world camera matrix
+*/
 
 glm::mat4 Camera::getViewToWorld()
 {
@@ -70,7 +74,7 @@ void Camera::rotateRelative(glm::vec2 angle)
 {
     _cur_angle += angle;
 
-    if (abs((int)_cur_angle.y) > 40.0)
+    if (abs((int)_cur_angle.y) > 50.0)
     {
         _cur_angle.y -= angle.y;
     }
@@ -84,15 +88,17 @@ void Camera::rotateRelative(glm::vec2 angle)
     _view[2] = cameraRot[2];
 }
 
-void Camera::translate(glm::vec3 translation)
+void Camera::translateWorld(glm::vec3 translation)
 {
-    glm::mat4 trans = glm::mat4(1.0);
-    trans[3] = glm::vec4(translation, 1.0);
-
-    _view = trans * _view;
+    _view[3] += glm::vec4(translation, 0.0);
 }
 
-void Camera::transform(glm::mat4 transform)
+void Camera::setTranslationWorld(glm::vec3 translation)
+{
+    _view[3] = glm::vec4(translation, 1.0);
+}
+
+void Camera::transformWorld(glm::mat4 transform)
 {
     _view = transform * _view;
 }

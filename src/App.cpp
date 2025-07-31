@@ -24,12 +24,16 @@ struct shaderInfo {
 
 glm::mat4 cuberot;
 Camera camera;
+Camera cameraStill;
+bool cameraStillChosen = false;
 
-Model model;
-Model model2;
-Model model3;
-Model model4;
-Model model5;
+Model floormodel;
+Model cube1;
+Model cube2;
+Model cube3;
+
+Model xyzlines;
+
 GLuint program1 = 0;
 GLuint program2 = 0;
 
@@ -114,12 +118,6 @@ unsigned int compile_shader(shaderInfo &shaders){
 void App::init()
 {
 
-    float vertices[] = { // NOLINT
-        -0.5f, 0.0f, -0.5f,
-         0.5f, 0.0f, -0.5f,
-         0.5f, 0.0f,  0.5f
-    };  
-
     float floor[] = { // NOLINT
         -1.0f, 0.0f, 1.0f,
          -1.0f, 0.0f, -1.0f,
@@ -132,7 +130,7 @@ void App::init()
 
     float cube[] = { // NOLINT
         // Floor
-        -1.0f,  -1.0f, 1.0f,
+        -1.0f,  -1.0f, 1.0f, 
          -1.0f, -1.0f, -1.0f,
          1.0f,  -1.0f, -1.0f,
                     
@@ -148,24 +146,37 @@ void App::init()
          1.0f,  1.0f,  1.0f,
          -1.0f, 1.0f,  1.0f,
          1.0f,  1.0f,  -1.0f,
+    };
 
+    float xyz[] = { // NOLINT
+        // Floor
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
     };
 
 
-    shaderInfo shaders;
 
+    floormodel.generateBuffers(floor, 6);
+
+    cube1.generateBuffers(cube, 3 * 4);
+    cube2.generateBuffers(cube, 3 * 4);
+    cube3.generateBuffers(cube, 3 * 4);
+
+    xyzlines.generateBuffers(xyz, 3);
+
+    cuberot = glm::mat4(1.0);
+
+    camera.setTranslationWorld(glm::vec3(0,1,10));
+    cameraStill.setTranslationWorld(glm::vec3(0,2,10));
+
+    shaderInfo shaders;
     shaders.fragment_name = "src/shaders/shader.frag";
     shaders.vertex_name = "src/shaders/shader.vert";
     program1 = compile_shader(shaders);
     shaders.fragment_name = "src/shaders/shaderBlack.frag";
     program2 = compile_shader(shaders);
 
-    model.generateBuffers(floor, 6);
-    model2.generateBuffers(vertices, 3);
-    model3.generateBuffers(cube, 3 * 4);
-    model4.generateBuffers(cube, 3 * 4);
-    model5.generateBuffers(cube, 3 * 4);
-    cuberot = glm::mat4(1.0);
 }
 
 void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& color)
@@ -178,7 +189,8 @@ void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp,
 
     int vertexColorLocation = glGetUniformLocation(program, "outColor");
     glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
-    model.draw();
+    // model.drawTriangles();
+    model.drawTriangles();
 }
 
 glm::mat4 Rz(float angle){
@@ -216,23 +228,42 @@ glm::mat4 scaled_eye(float scale){
     return eye;
 }
 
-void drawCube(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
+void drawxyz(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
+
+    // TODO: cube should not consist of three different VBOs....
 
     // top and bottom
     float color = 0.0;
     glm::mat4 mvp = worldToPerspective * modelToWorld;
-    bindAndDrawModel(model3, program2, mvp, color);
+    bindAndDrawModel(cube1, program2, mvp, color);
 
     // Rotate top and bottom to create a cube
     // first side
     mvp = worldToPerspective * modelToWorld * Rx(90.0);
-    bindAndDrawModel(model4, program2, mvp, color);
+    bindAndDrawModel(cube2, program2, mvp, color);
 
     // second side
     mvp = worldToPerspective * modelToWorld * Ry(90.0) * Rx(90.0);;
-    bindAndDrawModel(model5, program2, mvp, color);
-    // ----- Cube -----
+    bindAndDrawModel(cube3, program2, mvp, color);
+}
 
+void drawCube(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
+
+    // TODO: cube should not consist of three different VBOs....
+
+    // top and bottom
+    float color = 0.0;
+    glm::mat4 mvp = worldToPerspective * modelToWorld;
+    bindAndDrawModel(cube1, program2, mvp, color);
+
+    // Rotate top and bottom to create a cube
+    // first side
+    mvp = worldToPerspective * modelToWorld * Rx(90.0);
+    bindAndDrawModel(cube2, program2, mvp, color);
+
+    // second side
+    mvp = worldToPerspective * modelToWorld * Ry(90.0) * Rx(90.0);;
+    bindAndDrawModel(cube3, program2, mvp, color);
 }
 
 void App::render()
@@ -246,23 +277,31 @@ void App::render()
     cuberot = Ry(glm::degrees(angle));
     greenValue = 1.0;
 
-    glm::mat4 worldToView = glm::inverse(camera.getViewToWorld());
+    glm::mat4 worldToView;
+    if (cameraStillChosen)
+    {
+        worldToView = glm::inverse(cameraStill.getViewToWorld());
+    }
+    else
+    {
+        worldToView = glm::inverse(camera.getViewToWorld());
+    }
+
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
 
     glm::mat4 modelToWorld = scaled_eye(1000.0);
     glm::mat4 mvp = perspective * worldToView * modelToWorld;
 
     // ----- floor -----
-    bindAndDrawModel(model, program1, mvp, greenValue);
+    bindAndDrawModel(floormodel, program1, mvp, greenValue);
     // ----- floor -----
-    modelToWorld = scaled_eye(1.0);
+    modelToWorld = cuberot * scaled_eye(1.0);
     // ----- Cube -----
     drawCube(modelToWorld, perspective * worldToView);
     drawCube(glm::translate(modelToWorld, glm::vec3(0,3.1,0)), perspective * worldToView);
     drawCube(glm::translate(modelToWorld, glm::vec3(3,0,0)), perspective * worldToView);
     // ----- Cube -----
 }
-
 
 void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
 {
@@ -294,6 +333,20 @@ void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
     {
         camera.moveDown(speed);
     }
+
+    if (key == GLFW_KEY_C)
+    {
+        static int counter = 0;
+        if (counter < 20)
+        {
+            counter += 1;
+        }
+        else
+        {
+            cameraStillChosen = not cameraStillChosen;
+            counter = 0;
+        }
+    }
 }
 
 void App::mouse_button_callback(int /*button*/, int /*action*/, int /*mods*/)
@@ -304,12 +357,13 @@ void App::scroll_callback(double /*xoffset*/, double /*yoffset*/)
 {
 }
 
-double prev_xpos = 0;
-double prev_ypos = 0;
-bool inited = false;
 
 void App::cursor_position_callback(double xpos, double ypos)
 {
+    static double prev_xpos = 0;
+    static double prev_ypos = 0;
+    static bool inited = false;
+
     if (!inited)
     {
         inited = true;

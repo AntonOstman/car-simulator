@@ -4,7 +4,8 @@ class Model{
     public:
         void bind(GLuint program);
         void generateBuffers(float* vertices, unsigned int num_vert);
-        void draw();
+        void drawTriangles();
+        void drawLines();
     private:
         unsigned int _VBO;
         unsigned int _VAO;

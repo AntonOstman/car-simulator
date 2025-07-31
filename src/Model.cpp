@@ -36,9 +36,22 @@ void Model::bind(GLuint program)
     printError("Model::bind");
 }
 
-void Model::draw()
+/*
+   Draw VBO from bound model
+   GL_TRIANGLES for triagle model
+   GL_LINES for line model
+*/
+
+void Model::drawTriangles()
 {
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, _num_vert);
+}
+
+void Model::drawLines()
+{
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glDrawArrays(GL_LINES, 0, _num_vert);
 }
