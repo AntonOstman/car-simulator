@@ -1,9 +1,12 @@
 #pragma once
+#include <vector>
+#include "Loader.hpp"
 
 class Model{
     public:
         void bind(GLuint program);
-        void generateBuffers(float* vertices, unsigned int num_vert);
+        void generateBuffersVertColor(float* vertices, unsigned int num_vert);
+        void generateBuffersVertNormalTex(const std::vector<Vertex> &vertices);
         void drawTriangles();
         void drawLines();
     private:

@@ -6,6 +6,8 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_11)
 
 # Create compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# Add vcpkg assimp dependency to path
+set(CMAKE_PREFIX_PATH ./vcpkg/ports/assimp)
 
 # Enable many good warnings
 if (MSVC)
@@ -27,6 +29,12 @@ file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS src/*)
 target_sources(${PROJECT_NAME} PRIVATE ${MY_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
+##### -- Link libraries -- #####
+
+# -- Add assimp
+find_package(assimp CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
+
 # --Add glm-- 
 include(FetchContent)
 FetchContent_Declare(
@@ -43,6 +51,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 add_library(glad lib/glad/src/glad.c)
 target_include_directories(glad PUBLIC lib/glad/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE glad)
+
 
 # Copy the assets to the output folder (where the executable is created)
 include("lib/CMakeUtils/files_and_folders.cmake")

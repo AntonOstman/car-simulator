@@ -13,6 +13,11 @@
 #include "Model.hpp"
 #include "Camera.hpp"
 #include "glm/matrix.hpp"
+#include "Loader.hpp"
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 struct shaderInfo {
     std::string vertex_name;
@@ -34,8 +39,11 @@ Model cube3;
 
 Model xyzlines;
 
+Model realcube;
+
 GLuint program1 = 0;
 GLuint program2 = 0;
+GLuint program3 = 0;
 
 
 App::App(int window_width, int window_height)
@@ -44,6 +52,12 @@ App::App(int window_width, int window_height)
 }
 
 std::string read_file(std::string &filename){
+
+    if (filename == "")
+    {
+        std::cout << "ERROR::App::read_file No filename specified" << std::endl;
+        exit(0);
+    }
     
     std::ifstream file;
     file.open(filename);
@@ -84,7 +98,7 @@ unsigned int compile_shader(shaderInfo &shaders){
     if(!success)
     {
         glGetShaderInfoLog(shaders.vertexShader, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED " << shaders.vertex_name << std::endl << infoLog << std::endl;
         exit(1);
     }
 
@@ -92,7 +106,7 @@ unsigned int compile_shader(shaderInfo &shaders){
     if(!success)
     {
         glGetShaderInfoLog(shaders.fragmentShader, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED " << shaders.fragment_name << std::endl << infoLog << std::endl;
         exit(1);
     }
 
@@ -106,7 +120,7 @@ unsigned int compile_shader(shaderInfo &shaders){
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if(!success) {
         glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        std::cout << "ERROR::LINKING::COMPILATION_FAILED\n" << infoLog << std::endl;
+        std::cout << "ERROR::LINKING::COMPILATION_FAILED\n" << shaders.fragment_name << " " <<shaders.vertex_name << "\n" << infoLog << std::endl;
         exit(1);
     }
     glDeleteShader(shaders.vertexShader);
@@ -119,67 +133,96 @@ void App::init()
 {
 
     float floor[] = { // NOLINT
-        -1.0f, 0.0f, 1.0f,
-         -1.0f, 0.0f, -1.0f,
-         1.0f, 0.0f,  -1.0f,
+         1.0f, 0.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
+         -1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 
+        -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
 
-         1.0f, 0.0f,  1.0f,
-         -1.0f, 0.0f,  1.0f,
-         1.0f, 0.0f,  -1.0f
+         1.0f, 0.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
+         -1.0f, 0.0f,  1.0f, 0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f,  1.0f, 0.0f, 1.0f, 0.0f,
     };
 
     float cube[] = { // NOLINT
         // Floor
-        -1.0f,  -1.0f, 1.0f, 
-         -1.0f, -1.0f, -1.0f,
-         1.0f,  -1.0f, -1.0f,
+        -1.0f,  -1.0f, 1.0f,  -1.0f,  -1.0f, 1.0f, 
+         -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f,
+         1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                     
-         1.0f,  -1.0f,  1.0f,
-         -1.0f, -1.0f,  1.0f,
-         1.0f,  -1.0f,  -1.0f,
+         1.0f,  -1.0f,  1.0f, 1.0f,  -1.0f,  1.0f,
+         -1.0f, -1.0f,  1.0f, -1.0f, -1.0f,  1.0f,
+         1.0f,  -1.0f,  -1.0f, 1.0f,  -1.0f,  -1.0f,
 
         // Roof
-        -1.0f,  1.0f, 1.0f,
-         -1.0f, 1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, 1.0f,  -1.0f,  1.0f, 1.0f,
+         -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f, 1.0f,  1.0f, -1.0f,
 
-         1.0f,  1.0f,  1.0f,
-         -1.0f, 1.0f,  1.0f,
-         1.0f,  1.0f,  -1.0f,
+         1.0f,  1.0f,  1.0f, 1.0f,  1.0f,  1.0f,
+         -1.0f, 1.0f,  1.0f, 1.0f, 1.0f,  1.0f,
+         1.0f,  1.0f,  -1.0f,1.0f,  1.0f,  -1.0f,
     };
 
     float xyz[] = { // NOLINT
         // Floor
-        1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
     };
 
+    shaderInfo shader1;
+    shaderInfo shader2;
+    shaderInfo shader3;
+    shader1.fragment_name = "src/shaders/shader.frag";
+    shader1.vertex_name = "src/shaders/shader.vert";
+    shader2.fragment_name = "src/shaders/shaderBlack.frag";
+    shader2.vertex_name = "src/shaders/shader.vert";
+    shader3.fragment_name = "src/shaders/shaderVertTexNorm.frag";
+    shader3.vertex_name = "src/shaders/shaderVertTexNorm.vert";
+
+    program1 = compile_shader(shader1);
+    program2 = compile_shader(shader2);
+    program3 = compile_shader(shader3);
 
 
-    floormodel.generateBuffers(floor, 6);
+    floormodel.generateBuffersVertColor(floor, 6);
 
-    cube1.generateBuffers(cube, 3 * 4);
-    cube2.generateBuffers(cube, 3 * 4);
-    cube3.generateBuffers(cube, 3 * 4);
+    cube1.generateBuffersVertColor(cube, 3 * 4);
+    cube2.generateBuffersVertColor(cube, 3 * 4);
+    cube3.generateBuffersVertColor(cube, 3 * 4);
 
-    xyzlines.generateBuffers(xyz, 3);
+    xyzlines.generateBuffersVertColor(xyz, 3);
+
+    std::vector<Vertex> cubeverts = parseObj("assets/cube.obj");
+    realcube.generateBuffersVertNormalTex(cubeverts);
 
     cuberot = glm::mat4(1.0);
 
     camera.setTranslationWorld(glm::vec3(0,1,10));
     cameraStill.setTranslationWorld(glm::vec3(0,2,10));
 
-    shaderInfo shaders;
-    shaders.fragment_name = "src/shaders/shader.frag";
-    shaders.vertex_name = "src/shaders/shader.vert";
-    program1 = compile_shader(shaders);
-    shaders.fragment_name = "src/shaders/shaderBlack.frag";
-    program2 = compile_shader(shaders);
 
+    // Example:
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile("assets/cube.obj", aiProcess_Triangulate);
+    scene->HasCameras();
 }
 
-void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& color)
+void bindAndDrawModelIndiviual(Model& model, const GLuint& program, const glm::mat4& modelp, const glm::mat4& view, const glm::mat4& projection)
+{
+
+    // Set uniforms and draw
+    model.bind(program);
+    glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, false, &modelp[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, false, &view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, false, &projection[0][0]);
+
+    // int vertexColorLocation = glGetUniformLocation(program, "outColor");
+    // glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
+    // model.drawTriangles();
+    model.drawTriangles();
+}
+
+void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& /* color */ )
 {
 
     // Set uniforms and draw
@@ -187,8 +230,8 @@ void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp,
     int mvpLocation = glGetUniformLocation(program, "mvp");
     glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
 
-    int vertexColorLocation = glGetUniformLocation(program, "outColor");
-    glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
+    // int vertexColorLocation = glGetUniformLocation(program, "outColor");
+    // glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
     // model.drawTriangles();
     model.drawTriangles();
 }
@@ -235,16 +278,16 @@ void drawxyz(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
     // top and bottom
     float color = 0.0;
     glm::mat4 mvp = worldToPerspective * modelToWorld;
-    bindAndDrawModel(cube1, program2, mvp, color);
+    bindAndDrawModel(cube1, program1, mvp, color);
 
     // Rotate top and bottom to create a cube
     // first side
     mvp = worldToPerspective * modelToWorld * Rx(90.0);
-    bindAndDrawModel(cube2, program2, mvp, color);
+    bindAndDrawModel(cube2, program1, mvp, color);
 
     // second side
     mvp = worldToPerspective * modelToWorld * Ry(90.0) * Rx(90.0);;
-    bindAndDrawModel(cube3, program2, mvp, color);
+    bindAndDrawModel(cube3, program1, mvp, color);
 }
 
 void drawCube(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
@@ -254,16 +297,16 @@ void drawCube(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
     // top and bottom
     float color = 0.0;
     glm::mat4 mvp = worldToPerspective * modelToWorld;
-    bindAndDrawModel(cube1, program2, mvp, color);
+    bindAndDrawModel(cube1, program1, mvp, color);
 
     // Rotate top and bottom to create a cube
     // first side
     mvp = worldToPerspective * modelToWorld * Rx(90.0);
-    bindAndDrawModel(cube2, program2, mvp, color);
+    bindAndDrawModel(cube2, program1, mvp, color);
 
     // second side
     mvp = worldToPerspective * modelToWorld * Ry(90.0) * Rx(90.0);;
-    bindAndDrawModel(cube3, program2, mvp, color);
+    bindAndDrawModel(cube3, program1, mvp, color);
 }
 
 void App::render()
@@ -274,6 +317,7 @@ void App::render()
     double timeValue = glfwGetTime();
     float greenValue = sin(timeValue) / 2.0f + 0.5f;
     float angle = greenValue;
+    angle = 0;
     cuberot = Ry(glm::degrees(angle));
     greenValue = 1.0;
 
@@ -296,10 +340,13 @@ void App::render()
     bindAndDrawModel(floormodel, program1, mvp, greenValue);
     // ----- floor -----
     modelToWorld = cuberot * scaled_eye(1.0);
+    // -- realcube
+    mvp = perspective * worldToView * modelToWorld;
+    bindAndDrawModelIndiviual(realcube, program3, modelToWorld, worldToView, perspective);
     // ----- Cube -----
-    drawCube(modelToWorld, perspective * worldToView);
-    drawCube(glm::translate(modelToWorld, glm::vec3(0,3.1,0)), perspective * worldToView);
-    drawCube(glm::translate(modelToWorld, glm::vec3(3,0,0)), perspective * worldToView);
+    // drawCube(modelToWorld, perspective * worldToView);
+    // drawCube(glm::translate(modelToWorld, glm::vec3(0,3.1,0)), perspective * worldToView);
+    // drawCube(glm::translate(modelToWorld, glm::vec3(3,0,0)), perspective * worldToView);
     // ----- Cube -----
 }
 
