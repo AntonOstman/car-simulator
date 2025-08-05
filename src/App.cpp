@@ -33,9 +33,6 @@ Camera cameraStill;
 bool cameraStillChosen = false;
 
 Model floormodel;
-Model cube1;
-Model cube2;
-Model cube3;
 
 Model xyzlines;
 
@@ -70,8 +67,6 @@ std::string read_file(std::string &filename){
         buffer.append(line);
     }
     file.close();
-    // std::cout << buffer << std::endl;
-    // std::cout << "^^ outputted filed ^^" << std::endl;
 
     return buffer;
 }
@@ -133,41 +128,36 @@ void App::init()
 {
 
     float floor[] = { // NOLINT
-         1.0f, 0.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
-         -1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 
-        -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f,  -1.0f,
+         -1.0f, 0.0f, -1.0f,
+        -1.0f, 0.0f, 1.0f,  
 
-         1.0f, 0.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
-         -1.0f, 0.0f,  1.0f, 0.0f, 1.0f, 0.0f,
-         1.0f, 0.0f,  1.0f, 0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f,  -1.0f,
+         -1.0f, 0.0f,  1.0f,
+         1.0f, 0.0f,  1.0f, 
     };
+    std::vector<Vertex> floorverts;
 
-    float cube[] = { // NOLINT
-        // Floor
-        -1.0f,  -1.0f, 1.0f,  -1.0f,  -1.0f, 1.0f, 
-         -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f,
-         1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
-                    
-         1.0f,  -1.0f,  1.0f, 1.0f,  -1.0f,  1.0f,
-         -1.0f, -1.0f,  1.0f, -1.0f, -1.0f,  1.0f,
-         1.0f,  -1.0f,  -1.0f, 1.0f,  -1.0f,  -1.0f,
+    for (int i = 0; i < 6; i++)
+    {
+        glm::vec2 uv = glm::vec2(0,0);
+        glm::vec3 norm = glm::vec3(0,1,0);
+        glm::vec3 pos = glm::vec3(floor[i*3],floor[i*3 + 1],floor[i*3 + 2]);
 
-        // Roof
-        -1.0f,  1.0f, 1.0f,  -1.0f,  1.0f, 1.0f,
-         -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f, 1.0f,  1.0f, -1.0f,
+        Vertex floorvert;
+        floorvert.Pos = pos;
+        floorvert.TexCoord = uv;
+        floorvert.Normal = norm;
 
-         1.0f,  1.0f,  1.0f, 1.0f,  1.0f,  1.0f,
-         -1.0f, 1.0f,  1.0f, 1.0f, 1.0f,  1.0f,
-         1.0f,  1.0f,  -1.0f,1.0f,  1.0f,  -1.0f,
-    };
+        floorverts.push_back(floorvert);
+    }
 
-    float xyz[] = { // NOLINT
-        // Floor
-        1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-    };
+    // float xyz[] = { // NOLINT
+    //     // Floor
+    //     1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    //     0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    //     0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+    // };
 
     shaderInfo shader1;
     shaderInfo shader2;
@@ -183,16 +173,8 @@ void App::init()
     program2 = compile_shader(shader2);
     program3 = compile_shader(shader3);
 
-
-    floormodel.generateBuffersVertColor(floor, 6);
-
-    cube1.generateBuffersVertColor(cube, 3 * 4);
-    cube2.generateBuffersVertColor(cube, 3 * 4);
-    cube3.generateBuffersVertColor(cube, 3 * 4);
-
-    xyzlines.generateBuffersVertColor(xyz, 3);
-
     std::vector<Vertex> cubeverts = parseObj("assets/cube.obj");
+    floormodel.generateBuffersVertNormalTex(floorverts);
     realcube.generateBuffersVertNormalTex(cubeverts);
 
     cuberot = glm::mat4(1.0);
@@ -200,8 +182,7 @@ void App::init()
     camera.setTranslationWorld(glm::vec3(0,1,10));
     cameraStill.setTranslationWorld(glm::vec3(0,2,10));
 
-
-    // Example:
+    // WIP: Testing assimp works
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile("assets/cube.obj", aiProcess_Triangulate);
     scene->HasCameras();
@@ -216,23 +197,6 @@ void bindAndDrawModelIndiviual(Model& model, const GLuint& program, const glm::m
     glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, false, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, false, &projection[0][0]);
 
-    // int vertexColorLocation = glGetUniformLocation(program, "outColor");
-    // glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
-    // model.drawTriangles();
-    model.drawTriangles();
-}
-
-void bindAndDrawModel(Model& model, const GLuint& program, const glm::mat4& mvp, const float& /* color */ )
-{
-
-    // Set uniforms and draw
-    model.bind(program);
-    int mvpLocation = glGetUniformLocation(program, "mvp");
-    glUniformMatrix4fv(mvpLocation, 1, false, &mvp[0][0]);
-
-    // int vertexColorLocation = glGetUniformLocation(program, "outColor");
-    // glUniform4f(vertexColorLocation, 0.0f, color, 0.0f, 1.0f);
-    // model.drawTriangles();
     model.drawTriangles();
 }
 
@@ -271,44 +235,6 @@ glm::mat4 scaled_eye(float scale){
     return eye;
 }
 
-void drawxyz(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
-
-    // TODO: cube should not consist of three different VBOs....
-
-    // top and bottom
-    float color = 0.0;
-    glm::mat4 mvp = worldToPerspective * modelToWorld;
-    bindAndDrawModel(cube1, program1, mvp, color);
-
-    // Rotate top and bottom to create a cube
-    // first side
-    mvp = worldToPerspective * modelToWorld * Rx(90.0);
-    bindAndDrawModel(cube2, program1, mvp, color);
-
-    // second side
-    mvp = worldToPerspective * modelToWorld * Ry(90.0) * Rx(90.0);;
-    bindAndDrawModel(cube3, program1, mvp, color);
-}
-
-void drawCube(glm::mat4 modelToWorld, glm::mat4 worldToPerspective){
-
-    // TODO: cube should not consist of three different VBOs....
-
-    // top and bottom
-    float color = 0.0;
-    glm::mat4 mvp = worldToPerspective * modelToWorld;
-    bindAndDrawModel(cube1, program1, mvp, color);
-
-    // Rotate top and bottom to create a cube
-    // first side
-    mvp = worldToPerspective * modelToWorld * Rx(90.0);
-    bindAndDrawModel(cube2, program1, mvp, color);
-
-    // second side
-    mvp = worldToPerspective * modelToWorld * Ry(90.0) * Rx(90.0);;
-    bindAndDrawModel(cube3, program1, mvp, color);
-}
-
 void App::render()
 {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -317,9 +243,7 @@ void App::render()
     double timeValue = glfwGetTime();
     float greenValue = sin(timeValue) / 2.0f + 0.5f;
     float angle = greenValue;
-    angle = 0;
     cuberot = Ry(glm::degrees(angle));
-    greenValue = 1.0;
 
     glm::mat4 worldToView;
     if (cameraStillChosen)
@@ -332,22 +256,11 @@ void App::render()
     }
 
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
-
     glm::mat4 modelToWorld = scaled_eye(1000.0);
-    glm::mat4 mvp = perspective * worldToView * modelToWorld;
 
-    // ----- floor -----
-    bindAndDrawModel(floormodel, program1, mvp, greenValue);
-    // ----- floor -----
+    bindAndDrawModelIndiviual(floormodel, program3, modelToWorld, worldToView, perspective);
     modelToWorld = cuberot * scaled_eye(1.0);
-    // -- realcube
-    mvp = perspective * worldToView * modelToWorld;
     bindAndDrawModelIndiviual(realcube, program3, modelToWorld, worldToView, perspective);
-    // ----- Cube -----
-    // drawCube(modelToWorld, perspective * worldToView);
-    // drawCube(glm::translate(modelToWorld, glm::vec3(0,3.1,0)), perspective * worldToView);
-    // drawCube(glm::translate(modelToWorld, glm::vec3(3,0,0)), perspective * worldToView);
-    // ----- Cube -----
 }
 
 void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
@@ -418,7 +331,6 @@ void App::cursor_position_callback(double xpos, double ypos)
         prev_ypos = ypos;
     }
 
-    // camera = glm::rotate(const mat<4, 4, T, Q> &m, T angle, const vec<3, T, Q> &axis)
     double dx = (prev_xpos - xpos);
     double dy = (prev_ypos - ypos);
     std::cout << dx << std::endl;
