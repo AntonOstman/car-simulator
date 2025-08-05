@@ -9,6 +9,13 @@
 
 std::vector<Vertex> orderVertices(std::string filename, Vertices verts);
 
+void printVertex(std::vector<Vertex> vertices, int idx)
+{
+    std::cout << "pos: " << vertices[idx].Pos.x << ", " << vertices[idx].Pos.y << ", "<< vertices[idx].Pos.z << std::endl;
+    std::cout << "norm: " << vertices[idx].Normal.x << ", "<< vertices[idx].Normal.y << ", "<< vertices[idx].Normal.z << std::endl;
+    std::cout << "tex: " << vertices[idx].TexCoord.x << ", "<< vertices[idx].TexCoord.y << std::endl;
+}
+
 std::vector<Vertex> parseObj(std::string filename)
 {
     std::ifstream file;
@@ -107,7 +114,6 @@ std::vector<Vertex> orderVertices(std::string filename, Vertices verts)
                 cur_vertex.Pos = verts.Pos[v_idx];
                 cur_vertex.TexCoord = verts.TexCoord[vt_idx];
                 cur_vertex.Normal = verts.Normal[vn_idx];
-                std::cout << v_idx << vt_idx << vn_idx << std::endl;
 
                 vertices.push_back(cur_vertex);
             }
@@ -115,12 +121,6 @@ std::vector<Vertex> orderVertices(std::string filename, Vertices verts)
 
     }
     file.close();
-    int test_idx = 0;
-    std::cout << "start bug "<< std::endl;
-    std::cout << "pos: " << vertices[test_idx].Pos.x << ", " << vertices[test_idx].Pos.y << ", "<< vertices[test_idx].Pos.z << std::endl;
-    std::cout << "norm: " << vertices[test_idx].Normal.x << ", "<< vertices[test_idx].Normal.y << ", "<< vertices[test_idx].Normal.z << std::endl;
-    std::cout << "tex: " << vertices[test_idx].TexCoord.x << ", "<< vertices[test_idx].TexCoord.y << std::endl;
-    std::cout << "end bug "<< std::endl;
 
     return vertices;
 }

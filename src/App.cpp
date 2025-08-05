@@ -37,6 +37,7 @@ Model floormodel;
 Model xyzlines;
 
 Model realcube;
+Model bunny;
 
 GLuint program1 = 0;
 GLuint program2 = 0;
@@ -126,6 +127,7 @@ unsigned int compile_shader(shaderInfo &shaders){
 
 void App::init()
 {
+    glDepthMask(GL_TRUE);
 
     float floor[] = { // NOLINT
          1.0f, 0.0f,  -1.0f,
@@ -174,8 +176,10 @@ void App::init()
     program3 = compile_shader(shader3);
 
     std::vector<Vertex> cubeverts = parseObj("assets/cube.obj");
+    std::vector<Vertex> bunnyverts = parseObj("assets/bunny.obj");
     floormodel.generateBuffersVertNormalTex(floorverts);
     realcube.generateBuffersVertNormalTex(cubeverts);
+    bunny.generateBuffersVertNormalTex(bunnyverts);
 
     cuberot = glm::mat4(1.0);
 
@@ -238,7 +242,7 @@ glm::mat4 scaled_eye(float scale){
 void App::render()
 {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     double timeValue = glfwGetTime();
     float greenValue = sin(timeValue) / 2.0f + 0.5f;
@@ -261,6 +265,8 @@ void App::render()
     bindAndDrawModelIndiviual(floormodel, program3, modelToWorld, worldToView, perspective);
     modelToWorld = cuberot * scaled_eye(1.0);
     bindAndDrawModelIndiviual(realcube, program3, modelToWorld, worldToView, perspective);
+    // modelToWorld = cuberot * scaled_eye(1.0);
+    bindAndDrawModelIndiviual(bunny, program3, modelToWorld, worldToView, perspective);
 }
 
 void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)

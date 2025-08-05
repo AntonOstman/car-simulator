@@ -1,4 +1,4 @@
-#define GLM_SWIZZLE
+#define GLM_FORCE_SWIZZLE
 #include "App.hpp"
 #include <GLFW/glfw3.h>
 

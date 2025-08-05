@@ -1,4 +1,4 @@
-#define GLM_SWIZZLE
+#define GLM_FORCE_SWIZZLE
 #include <glm/mat4x4.hpp>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate

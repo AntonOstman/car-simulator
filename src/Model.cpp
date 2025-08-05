@@ -90,7 +90,7 @@ void Model::drawTriangles()
     // glDisable(GL_CULL_FACE);
     glEnable(GL_CULL_FACE);
     // glDisable(GL_DEPTH_TEST);
-    // glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, _num_vert);
 }
 
