@@ -110,7 +110,7 @@ void App::createEntities()
 void App::init()
 {
     // glDepthMask(GL_TRUE);
-    glViewport(0, 0, _width, _height); // Set viewport
+    // glViewport(0, 0, _width, _height); // Set viewport
     _ecs = ECS();
     createEntities();
 
@@ -147,10 +147,10 @@ void App::render()
     //
     // modelToWorld = cuberot * scaled_eye(1.0);
     // _ecs.updateEntities();
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // updateSystems();
-    // _renderingSystem.update(_ecs);
+    _renderingSystem.update(_ecs);
 }
 
 void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)

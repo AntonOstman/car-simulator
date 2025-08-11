@@ -82,7 +82,7 @@ unsigned int compile_shader(std::string vertex_name, std::string fragment_name){
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);  
 
-    std::cout << "Compile shader" << vertex_name << " " << fragment_name << "success" << std::endl;
+    std::cout << "Compile shader " << vertex_name << " " << fragment_name << " success" << std::endl;
 
     return shaderProgram;
 }
@@ -145,7 +145,6 @@ void RenderingSystem::update(ECS& ecs)
         Mesh mesh = ecs.getComponent<Mesh>(drawable);
         ShaderComp shader = ecs.getComponent<ShaderComp>(drawable);
         glm::mat4 model = transform.modelToWorld;
-        // std::cout << shader.program << std::endl;
 
         RenderingSystem::setUniforms(shader.program, model, view, perspective);
         RenderingSystem::drawTriangles(mesh, shader.program);
@@ -278,7 +277,6 @@ void RenderingSystem::drawTriangles(Mesh& mesh, GLuint program)
     assert(mesh.VAO != 0 && "Uninitialized VAO");
     assert(program != 0 && "Uninitialized program");
     assert(mesh.num_vert != 0 && "No vertices in mesh");
-    // std::cout << mesh.VAO << std::endl;
 
     glBindVertexArray(mesh.VAO);
     glUseProgram(program);
@@ -286,7 +284,6 @@ void RenderingSystem::drawTriangles(Mesh& mesh, GLuint program)
     printError("RenderingSystem::drawTriangles bind error");
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
-    std::cout << mesh.num_vert << std::endl;
     glDrawArrays(GL_TRIANGLES, 0, mesh.num_vert);
     printError("RenderingSystem::drawTriangles draw error");
 
