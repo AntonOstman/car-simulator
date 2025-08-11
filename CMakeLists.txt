@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.11) # FetchContent is new in version 3.11.
 
 project(SimpleOpenGL)
-add_executable(${PROJECT_NAME})
+add_executable(${PROJECT_NAME} src/main.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_11)
 
-# Create compile_commands.json
+# Create compile_commands.json (Does not work need to use -DCMAKE_EXPORT_COMPILE_COMMANDS=ON as argument)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Add vcpkg assimp dependency to path
 set(CMAKE_PREFIX_PATH ./vcpkg/ports/assimp)
@@ -20,7 +20,7 @@ endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
 
-# Prevents compiler-specific extensions to C++ because they might allow code to compile on your machine but not on other people's machine
+# Prevents compiler-specific extensions to C++ because they might allow code to compile on one machine but not on others.
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_EXTENSIONS OFF)
 
@@ -29,13 +29,18 @@ file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS src/*)
 target_sources(${PROJECT_NAME} PRIVATE ${MY_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
-##### -- Link libraries -- #####
+##### Link libraries #####
 
-# -- Add assimp
+# -- Add glad --
+add_library(glad lib/glad/src/glad.c)
+target_include_directories(glad PUBLIC lib/glad/include)
+target_link_libraries(${PROJECT_NAME} PRIVATE glad)
+
+# -- Add assimp --
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
-# --Add glm-- 
+# -- Add glm from interwebs -- 
 include(FetchContent)
 FetchContent_Declare(
 	glm
@@ -44,13 +49,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 target_link_libraries(${PROJECT_NAME} PRIVATE glm)
-# ---Add GLFW---
+
+# -- Add GLFW (installed as system lib) --
 add_subdirectory(lib/glfw)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
-# ---Add glad---
-add_library(glad lib/glad/src/glad.c)
-target_include_directories(glad PUBLIC lib/glad/include)
-target_link_libraries(${PROJECT_NAME} PRIVATE glad)
 
 
 # Copy the assets to the output folder (where the executable is created)

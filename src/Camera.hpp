@@ -11,7 +11,6 @@ private:
 
 public:
     Camera();
-
     void initCamera();
     void rotateRelative(glm::vec2 angle);
     void translateWorld(glm::vec3 translation);

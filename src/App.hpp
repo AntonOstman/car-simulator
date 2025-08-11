@@ -1,8 +1,7 @@
 #pragma once
 #include <glm/ext/matrix_float4x4.hpp>
 #define GLFW_INCLUDE_NONE
-#include "glad/glad.h"
-#include <string>
+#include "EntityComponentSystem.hpp"
 
 
 class Model;
@@ -12,9 +11,12 @@ public:
 private:
     int _width{};
     int _height{};
+    ECS _ecs;
+    RenderingSystem _renderingSystem;
 
 public:
     App(int window_width, int window_height);
+    void createEntities();
     void render();
     void init();
     void key_callback(int key, int scancode, int action, int mods);
@@ -22,4 +24,5 @@ public:
     void scroll_callback(double xoffset, double yoffset);
     void cursor_position_callback(double xpos, double ypos);
     void size_callback(int width, int height);
+    void updateSystems();
 };

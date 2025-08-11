@@ -1,5 +1,6 @@
 #include "App.hpp"
 #include "GLFW/glfw3.h"
+#include "glad/glad.h"
 #include <fstream>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -18,116 +19,21 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
-struct shaderInfo {
-    std::string vertex_name;
-    std::string fragment_name;
-    GLuint vertexShader;
-    GLuint fragmentShader;
-    GLuint program;
-};
+#include "Math.hpp"
+#include "EntityComponentSystem.hpp"
 
 glm::mat4 cuberot;
 Camera camera;
 Camera cameraStill;
 bool cameraStillChosen = false;
 
-Model floormodel;
-
-Model xyzlines;
-
-Model realcube;
-Model bunny;
-
-GLuint program1 = 0;
-GLuint program2 = 0;
-GLuint program3 = 0;
-
-
 App::App(int window_width, int window_height)
 {
     size_callback(window_width, window_height);
 }
 
-std::string read_file(std::string &filename){
-
-    if (filename == "")
-    {
-        std::cout << "ERROR::App::read_file No filename specified" << std::endl;
-        exit(0);
-    }
-    
-    std::ifstream file;
-    file.open(filename);
-    std::string buffer;
-    std::string line;
-
-    while(file){
-        std::getline(file, line);
-        line.append("\n");
-        buffer.append(line);
-    }
-    file.close();
-
-    return buffer;
-}
-
-unsigned int compile_shader(shaderInfo &shaders){
-    
-    std::string frag = read_file(shaders.fragment_name);
-    std::string vert = read_file(shaders.vertex_name);
-
-    shaders.vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    const char* vert_c_str = vert.c_str();
-    glShaderSource(shaders.vertexShader, 1, &vert_c_str, nullptr);
-    glCompileShader(shaders.vertexShader);
-
-    shaders.fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    const char* frag_c_str = frag.c_str();
-    glShaderSource(shaders.fragmentShader, 1, &frag_c_str, nullptr);
-    glCompileShader(shaders.fragmentShader);
-
-    int  success = 0;
-    char infoLog[512]; // NOLINT
-
-    glGetShaderiv(shaders.vertexShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(shaders.vertexShader, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED " << shaders.vertex_name << std::endl << infoLog << std::endl;
-        exit(1);
-    }
-
-    glGetShaderiv(shaders.fragmentShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(shaders.fragmentShader, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED " << shaders.fragment_name << std::endl << infoLog << std::endl;
-        exit(1);
-    }
-
-    unsigned int shaderProgram = 0;
-    shaderProgram = glCreateProgram();
-
-    glAttachShader(shaderProgram, shaders.vertexShader);
-    glAttachShader(shaderProgram, shaders.fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if(!success) {
-        glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        std::cout << "ERROR::LINKING::COMPILATION_FAILED\n" << shaders.fragment_name << " " <<shaders.vertex_name << "\n" << infoLog << std::endl;
-        exit(1);
-    }
-    glDeleteShader(shaders.vertexShader);
-    glDeleteShader(shaders.fragmentShader);  
-
-    return shaderProgram;
-}
-
-void App::init()
+void App::createEntities()
 {
-    glDepthMask(GL_TRUE);
 
     float floor[] = { // NOLINT
          1.0f, 0.0f,  -1.0f,
@@ -138,6 +44,7 @@ void App::init()
          -1.0f, 0.0f,  1.0f,
          1.0f, 0.0f,  1.0f, 
     };
+
     std::vector<Vertex> floorverts;
 
     for (int i = 0; i < 6; i++)
@@ -153,120 +60,97 @@ void App::init()
 
         floorverts.push_back(floorvert);
     }
-
-    // float xyz[] = { // NOLINT
-    //     // Floor
-    //     1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-    //     0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-    //     0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-    // };
-
-    shaderInfo shader1;
-    shaderInfo shader2;
-    shaderInfo shader3;
-    shader1.fragment_name = "src/shaders/shader.frag";
-    shader1.vertex_name = "src/shaders/shader.vert";
-    shader2.fragment_name = "src/shaders/shaderBlack.frag";
-    shader2.vertex_name = "src/shaders/shader.vert";
-    shader3.fragment_name = "src/shaders/shaderVertTexNorm.frag";
-    shader3.vertex_name = "src/shaders/shaderVertTexNorm.vert";
-
-    program1 = compile_shader(shader1);
-    program2 = compile_shader(shader2);
-    program3 = compile_shader(shader3);
-
     std::vector<Vertex> cubeverts = parseObj("assets/cube.obj");
     std::vector<Vertex> bunnyverts = parseObj("assets/bunny.obj");
-    floormodel.generateBuffersVertNormalTex(floorverts);
-    realcube.generateBuffersVertNormalTex(cubeverts);
-    bunny.generateBuffersVertNormalTex(bunnyverts);
 
-    cuberot = glm::mat4(1.0);
+    CompId<ShaderComp> program = _renderingSystem.createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert", _ecs);
 
+    EntityID floorid = _ecs.createEntity();
+    EntityID bunnyid = _ecs.createEntity();
+    EntityID cubeid = _ecs.createEntity();
+    EntityID camid = _ecs.createEntity();
+
+    _ecs.addComponent(floorid, program);
+    _ecs.addComponent(bunnyid, program);
+    _ecs.addComponent(cubeid, program);
+
+    CompId<Mesh> floormesh = _renderingSystem.createMesh(floorverts, _ecs);
+    CompId<Mesh> cubemesh = _renderingSystem.createMesh(cubeverts, _ecs);
+    CompId<Mesh> bunnymesh = _renderingSystem.createMesh(bunnyverts, _ecs);
+
+    _ecs.addComponent(floorid, floormesh);
+    _ecs.addComponent(cubeid, cubemesh);
+    _ecs.addComponent(bunnyid, bunnymesh);
+
+    glm::mat4 floorTrans = scaled_eye(1000.0);
+    glm::mat4 cubeTrans = scaled_eye(1.0);
+    Transform floorMTW;
+    Transform cubeMTW;
+    floorMTW.modelToWorld = floorTrans;
+    cubeMTW.modelToWorld = cubeTrans;
+
+    CompId<Transform> floorTransId = _ecs.createComponent(floorMTW);
+    CompId<Transform> cubeTransId = _ecs.createComponent(cubeMTW);
+
+    _ecs.addComponent(floorid, floorTransId);
+    _ecs.addComponent(cubeid, cubeTransId);
+
+    glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
     camera.setTranslationWorld(glm::vec3(0,1,10));
-    cameraStill.setTranslationWorld(glm::vec3(0,2,10));
+    CameraComp camcomp;
+    camcomp.view = glm::inverse(camera.getViewToWorld());
+    camcomp.perspective = perspective;
+    CompId<CameraComp> camcompid = _ecs.createComponent(camcomp);
+    _ecs.addComponent(camid, camcompid);
+    _ecs.addTag(camid, "mainCamera");
 
-    // WIP: Testing assimp works
+    // cameraStill.setTranslationWorld(glm::vec3(0,2,10));
+}
+
+void App::init()
+{
+    // glDepthMask(GL_TRUE);
+    glViewport(0, 0, _width, _height); // Set viewport
+    _ecs = ECS();
+    createEntities();
+
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile("assets/cube.obj", aiProcess_Triangulate);
     scene->HasCameras();
 }
 
-void bindAndDrawModelIndiviual(Model& model, const GLuint& program, const glm::mat4& modelp, const glm::mat4& view, const glm::mat4& projection)
+void App::updateSystems()
 {
-
-    // Set uniforms and draw
-    model.bind(program);
-    glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, false, &modelp[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, false, &view[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, false, &projection[0][0]);
-
-    model.drawTriangles();
 }
-
-glm::mat4 Rz(float angle){
-    angle = glm::radians(angle);
-    glm::mat4 rot = glm::mat4(cos(angle), -sin(angle), 0.0, 0.0,
-                              sin(angle), cos(angle),  0.0, 0.0,
-                              0.0,           0.0,      1.0, 0.0,
-                              0.0,           0.0,      0.0, 1.0);
-    return rot;
-}
-
-glm::mat4 Rx(float angle){
-    angle = glm::radians(angle);
-    glm::mat4 rot = glm::mat4(  1.0,    0.0,      0.0,        0.0,
-                                0.0, cos(angle), -sin(angle), 0.0,
-                                0.0, sin(angle), cos(angle),  0.0,
-                                0.0,      0.0,      0.0,      1.0);
-    return rot;
-}
-
-glm::mat4 Ry(float angle){
-    angle = glm::radians(angle);
-    glm::mat4 rot = glm::mat4(cos(angle),  0.0, sin(angle),  0.0,
-                              0.0,         1.0,   0.0,       0.0,
-                              -sin(angle), 0.0,  cos(angle), 0.0,
-                              0.0,         0.0,   0.0,       1.0);
-    return rot;
-}
-
-glm::mat4 scaled_eye(float scale){
-    glm::mat4 eye = glm::mat4(scale, 0.0,    0.0,   0.0,
-                              0.0,   scale,  0.0,   0.0,
-                              0.0,   0.0,    scale, 0.0,
-                              0.0,   0.0,    0.0,   1.0);
-    return eye;
-}
-
 void App::render()
 {
+    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // double timeValue = glfwGetTime();
+    // float greenValue = sin(timeValue) / 2.0f + 0.5f;
+    // float angle = greenValue;
+    // cuberot = Ry(glm::degrees(angle));
+    //
+    // glm::mat4 worldToView;
+    // if (cameraStillChosen)
+    // {
+    //     worldToView = glm::inverse(cameraStill.getViewToWorld());
+    // }
+    // else
+    // {
+    //     worldToView = glm::inverse(camera.getViewToWorld());
+    // }
+    //
+    // // glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
+    // glm::mat4 modelToWorld = scaled_eye(1000.0);
+    //
+    // modelToWorld = cuberot * scaled_eye(1.0);
+    // _ecs.updateEntities();
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    double timeValue = glfwGetTime();
-    float greenValue = sin(timeValue) / 2.0f + 0.5f;
-    float angle = greenValue;
-    cuberot = Ry(glm::degrees(angle));
-
-    glm::mat4 worldToView;
-    if (cameraStillChosen)
-    {
-        worldToView = glm::inverse(cameraStill.getViewToWorld());
-    }
-    else
-    {
-        worldToView = glm::inverse(camera.getViewToWorld());
-    }
-
-    glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
-    glm::mat4 modelToWorld = scaled_eye(1000.0);
-
-    bindAndDrawModelIndiviual(floormodel, program3, modelToWorld, worldToView, perspective);
-    modelToWorld = cuberot * scaled_eye(1.0);
-    bindAndDrawModelIndiviual(realcube, program3, modelToWorld, worldToView, perspective);
-    // modelToWorld = cuberot * scaled_eye(1.0);
-    bindAndDrawModelIndiviual(bunny, program3, modelToWorld, worldToView, perspective);
+    // updateSystems();
+    // _renderingSystem.update(_ecs);
 }
 
 void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
@@ -339,8 +223,8 @@ void App::cursor_position_callback(double xpos, double ypos)
 
     double dx = (prev_xpos - xpos);
     double dy = (prev_ypos - ypos);
-    std::cout << dx << std::endl;
-    std::cout << dy << std::endl;
+    // std::cout << dx << std::endl;
+    // std::cout << dy << std::endl;
 
     camera.rotateRelative(glm::vec2(dx, dy));
     prev_xpos = xpos;
@@ -351,4 +235,5 @@ void App::size_callback(int width, int height)
 {
     _width  = width;
     _height = height;
+    // glViewport(0, 0, width, height); // Set viewport explicitly
 }

@@ -1,5 +1,6 @@
 #define GLM_FORCE_SWIZZLE
 #include "App.hpp"
+#include "glad/glad.h"
 #include <GLFW/glfw3.h>
 
 static App& get_app(GLFWwindow* window)

@@ -5,6 +5,7 @@
 #include "Model.hpp"
 #include "Debug.hpp"
 #include "Loader.hpp"
+#include "glad/glad.h"
 
 void Model::generateBuffersVertNormalTex(const std::vector<Vertex> &vertices)
 {
@@ -53,7 +54,7 @@ void Model::generateBuffersVertColor(float* vertices, unsigned int num_vert)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     // Allocate memory
     // num float * num verts * num colors
-    glBufferData(GL_ARRAY_BUFFER, 3 * num_vert * 2 * sizeof(GL_FLOAT), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 3 * num_vert * 2 * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
     _VAO = VAO;
     _VBO = VBO;
     _num_vert = num_vert;
@@ -79,12 +80,6 @@ void Model::bind(GLuint program)
     glUseProgram(program); // Just in case
 }
 
-/*
-   Draw VBO from bound model
-   GL_TRIANGLES for triagle model
-   GL_LINES for line model
-*/
-
 void Model::drawTriangles()
 {
     // glDisable(GL_CULL_FACE);
@@ -100,3 +95,13 @@ void Model::drawLines()
     glDisable(GL_DEPTH_TEST);
     glDrawArrays(GL_LINES, 0, _num_vert);
 }
+
+glm::mat4 Model::getModelToWorld()
+{
+    return _modelToWorld;
+}
+
+// glm::mat4 Model::setModelToWorld(glm::mat4 modelToWorld)
+// {
+//     _modelToWorld = modelToWorld;
+// }
