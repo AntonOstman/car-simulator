@@ -1,8 +1,9 @@
 #pragma once
 
 #include <glm/mat4x4.hpp>
+#include "EntityComponentSystem.hpp"
 
-class Camera{
+class CameraSystem{
 
 public:
 private:
@@ -10,20 +11,19 @@ private:
     glm::vec2 _cur_angle;
 
 public:
-    Camera();
-    void initCamera();
-    void rotateRelative(glm::vec2 angle);
-    void translateWorld(glm::vec3 translation);
-    void transformWorld(glm::mat4 transform);
-    glm::mat4 getViewToWorld();
-    void moveForward(float speed);
-    void rotate(double anglex, double angley);
-    void moveBack(float speed);
-    void moveLeft(float speed);
-    void moveRight(float speed);
-    void moveUp(float speed);
-    void moveDown(float speed);
-    void setTranslationWorld(glm::vec3 translation);
+    void static rotateRelative(CameraComp& comp, glm::vec2 angle);
+    void static translateWorld(CameraComp& comp, glm::vec3 translation);
+    void static transformWorld(CameraComp& comp, glm::mat4 transform);
+    glm::mat4 static getViewToWorld(CameraComp& comp);
+    void static moveForward(CameraComp& comp, float speed);
+    void static rotate(CameraComp& comp, double anglex, double angley);
+    void static moveBack(CameraComp& comp, float speed);
+    void static moveLeft(CameraComp& comp, float speed);
+    void static moveRight(CameraComp& comp, float speed);
+    void static moveUp(CameraComp& comp, float speed);
+    void static moveDown(CameraComp& comp, float speed);
+    void static setTranslationWorld(CameraComp& comp, glm::vec3 translation);
+    void static init(CameraComp& comp);
 
 private:
 

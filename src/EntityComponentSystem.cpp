@@ -129,7 +129,7 @@ void RenderingSystem::update(ECS& ecs)
 
     EntityID cameraEntity = ecs.getEntityWithTag("mainCamera");
     CameraComp mainCamera = ecs.getComponent<CameraComp>(cameraEntity);
-    glm::mat4 view = mainCamera.view;
+    glm::mat4 view = glm::inverse(mainCamera.view);
     glm::mat4 perspective = mainCamera.perspective;
 
     std::vector<EntityID> drawables = ecs.intersection_entity_id<Transform, Mesh, ShaderComp>();
@@ -158,22 +158,6 @@ ECS::ECS()
     _storages = std::vector<IComponentStore*>();
 }
 
-// template<typename T, typename U>
-// std::unordered_set<EntityID> ECS::intersection_entity_id()
-// {
-//     std::unordered_set<EntityID> intersections = std::unordered_set<EntityID>();
-//
-//     for (uint i = 0; i < _entities.size(); i++)
-//     {
-//         EntityID entity = _entities[i];
-//         if (getStorage<T>().entities.count(entity) && getStorage<U>().entities.count(entity))
-//         {
-//             intersections.insert(entity);
-//         }
-//     }
-//     return intersections;
-// }
-
 template<typename... Components>
 std::vector<EntityID> ECS::intersection_entity_id() {
     std::vector<EntityID> intersections;
@@ -185,38 +169,6 @@ std::vector<EntityID> ECS::intersection_entity_id() {
     }
     return intersections;
 }
-
-// template<typename T>
-// std::unordered_set<EntityID> ECS::intersection_entity_id(std::unordered_set<EntityID> entities)
-// {
-//     std::unordered_set<EntityID> intersections = std::unordered_set<EntityID>();
-//
-//     for (EntityID entity : entities)
-//     {
-//         if (getStorage<T>().entities.count(entity))
-//         {
-//             intersections.insert(entity);
-//         }
-//     }
-//     return intersections;
-//
-// }
-
-// void ECS::updateEntities()
-// {
-//     EntityID mainCamera = getEntityWithTag("mainCamera");
-//     glm::mat4 view = _cameras[mainCamera]->view;
-//     glm::mat4 perspective = _cameras[mainCamera]->perspective;
-//
-//     std::vector<EntityID> drawables = intersection_entity_id(_transforms, _meshes);
-//     for (EntityID drawable : drawables)
-//     {
-//         glm::mat4 model = _transforms[drawable]->modelToWorld;
-//         GLuint program = _meshes[drawable]->program;
-//         RenderingSystem::setUniforms(program, model, view, perspective);
-//         RenderingSystem::drawTriangles(*_meshes[drawable], program);
-//     }
-// }
 
 void ECS::addTag(EntityID entity, std::string tag)
 {
@@ -282,8 +234,8 @@ void RenderingSystem::drawTriangles(Mesh& mesh, GLuint program)
     glUseProgram(program);
 
     printError("RenderingSystem::drawTriangles bind error");
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, mesh.num_vert);
     printError("RenderingSystem::drawTriangles draw error");
 
@@ -325,7 +277,7 @@ void ECS::removeEntity(EntityID entity)
 template<typename T>
 ComponentStore<T>& ECS::getStorage()
 {
-    // Sanity check each component to the extreme
+    // Sanity check each type before creation.
     static_assert(!std::is_pointer_v<T>, "Component type cannot be a pointer.");
     static_assert(!std::is_reference_v<T>, "Component type cannot be a reference.");
     static_assert(!std::is_const_v<T>, "Component type cannot be const.");

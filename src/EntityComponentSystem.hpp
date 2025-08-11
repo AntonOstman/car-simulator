@@ -55,6 +55,7 @@ struct ComponentStore : IComponentStore
 {
     std::vector<T> data;
 
+    // TODO: Add a way to remove components
     CompId<T> createComponent(T component)
     {
         assert(data.size() < SIZE_MAX && "Max size_t reached");
@@ -65,8 +66,6 @@ struct ComponentStore : IComponentStore
 
     void addComponent(EntityID entity, CompId<T> idx)
     {
-        // assert(entityToIdx.count(entity) > 0 && "Entity does not have component");
-        // assert(idxToEntity.count(idx) > 0 && "Entity does not have component");
         entityToIdx[entity] = idx;
         idxToEntity[idx.idx] = entity;
         entities.insert(entity);
@@ -78,6 +77,7 @@ struct ComponentStore : IComponentStore
         return data[entityToIdx[entity]];
     }
 };
+
 struct ComponentMarker {};
 
 struct ShaderComp : ComponentMarker{
@@ -87,6 +87,7 @@ struct ShaderComp : ComponentMarker{
 struct CameraComp: ComponentMarker{
     glm::mat4 view;
     glm::mat4 perspective;
+    glm::vec2 cur_angle;
 };
 
 struct Phys: ComponentMarker{
@@ -126,13 +127,13 @@ public:
     void init();
     void updateEntities();
     EntityID createEntity();
-
     void removeEntity(EntityID entity);
     EntityID getEntityWithTag(std::string tag);
     void addTag(EntityID entity, std::string tag);
 
     template<typename... Components>
     std::vector<EntityID> intersection_entity_id();
+
     template<typename T>
     T& getComponent(EntityID entity)
     {
@@ -166,12 +167,11 @@ class RenderingSystem{
         CompId<Mesh> static createMesh(const std::vector<Vertex> &vertices, ECS& ecs);
         CompId<ShaderComp> static createShader(std::string frag, std::string vert, ECS& ecs);
         void static update(ECS& ecs);
-
+        void static init();
+    private:
         void static setUniforms(const GLuint& program, const glm::mat4& modelp, const glm::mat4& view, const glm::mat4& projection);
         void static drawLines(Mesh& mesh, GLuint program);
         void static drawTriangles(Mesh& mesh, GLuint program);
-        void static init();
-    private:
     public:
     private:
 };

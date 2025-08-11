@@ -2,6 +2,7 @@
 #include <glm/mat4x4.hpp>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate
+#include "EntityComponentSystem.hpp"
 
 #include "Camera.hpp"
 #include "glm/geometric.hpp"
@@ -20,85 +21,85 @@ glm::mat4 lookAt(glm::vec3 up, glm::vec3 eye, glm::vec3 center)
     return lookAt;
 }
 
-Camera::Camera()
-{
-    glm::vec3 up = glm::vec3(0, 1, 0);
-    glm::vec3 eye = glm::vec3(0, 0, -10);
-    glm::vec3 lookTowards = glm::vec3(0, 0, 0);
-
-    _cur_angle = glm::vec2(0, 0);
-    _view = lookAt(up, eye, lookTowards);
-    // _view = glm::lookAt(eye, lookTowards, up);
-}
-
 /*
    Returns the view to world camera matrix
 */
 
-glm::mat4 Camera::getViewToWorld()
+glm::mat4 CameraSystem::getViewToWorld(CameraComp& comp)
 {
-    return _view;
+    return comp.view;
 }
 
-void Camera::moveForward(float speed)
+void CameraSystem::init(CameraComp& comp)
 {
-    _view[3] -= speed * _view[2];
+    glm::vec3 up = glm::vec3(0, 1, 0);
+    glm::vec3 eye = glm::vec3(0, 0, -10);
+    glm::vec3 lookTowards = glm::vec3(0, 0, 0);
+ 
+    comp.cur_angle = glm::vec2(0, 0);
+    comp.view = lookAt(up, eye, lookTowards);
+    // comp.view = glm::lookAt(eye, lookTowards, up);
 }
 
-void Camera::moveBack(float speed)
+void CameraSystem::moveForward(CameraComp& comp, float speed)
 {
-    _view[3] += speed * _view[2];
+    comp.view[3] -= speed * comp.view[2];
 }
 
-void Camera::moveLeft(float speed)
+void CameraSystem::moveBack(CameraComp& comp, float speed)
 {
-    _view[3] -= speed * _view[0];
+    comp.view[3] += speed * comp.view[2];
 }
 
-void Camera::moveRight(float speed)
+void CameraSystem::moveLeft(CameraComp& comp, float speed)
 {
-    _view[3] += speed * _view[0];
+    comp.view[3] -= speed * comp.view[0];
 }
 
-void Camera::moveUp(float speed)
+void CameraSystem::moveRight(CameraComp& comp,float speed)
 {
-    _view[3] += speed * _view[1];
+    comp.view[3] += speed * comp.view[0];
 }
 
-void Camera::moveDown(float speed)
+void CameraSystem::moveUp(CameraComp& comp, float speed)
 {
-    _view[3] -= speed * _view[1];
+    comp.view[3] += speed * comp.view[1];
 }
 
-void Camera::rotateRelative(glm::vec2 angle)
+void CameraSystem::moveDown(CameraComp& comp, float speed)
 {
-    _cur_angle += angle;
+    comp.view[3] -= speed * comp.view[1];
+}
 
-    if (abs((int)_cur_angle.y) > 50.0)
+void CameraSystem::rotateRelative(CameraComp& comp, glm::vec2 angle)
+{
+    comp.cur_angle += angle;
+
+    if (abs((int)comp.cur_angle.y) > 50.0)
     {
-        _cur_angle.y -= angle.y;
+        comp.cur_angle.y -= angle.y;
     }
-    glm::quat pitch = glm::angleAxis((float)glm::radians(_cur_angle.y), glm::normalize(glm::vec3(_view[0])));
-    glm::quat yaw = glm::angleAxis((float)glm::radians(_cur_angle.x), glm::normalize(glm::vec3(0,1,0)));
+    glm::quat pitch = glm::angleAxis((float)glm::radians(comp.cur_angle.y), glm::normalize(glm::vec3(comp.view[0])));
+    glm::quat yaw = glm::angleAxis((float)glm::radians(comp.cur_angle.x), glm::normalize(glm::vec3(0,1,0)));
     glm::quat rot = pitch * yaw;
 
     glm::mat4 cameraRot = glm::mat4(rot);
-    _view[0] = cameraRot[0];
-    _view[1] = cameraRot[1];
-    _view[2] = cameraRot[2];
+    comp.view[0] = cameraRot[0];
+    comp.view[1] = cameraRot[1];
+    comp.view[2] = cameraRot[2];
 }
 
-void Camera::translateWorld(glm::vec3 translation)
+void CameraSystem::translateWorld(CameraComp& comp, glm::vec3 translation)
 {
-    _view[3] += glm::vec4(translation, 0.0);
+    comp.view[3] += glm::vec4(translation, 0.0);
 }
 
-void Camera::setTranslationWorld(glm::vec3 translation)
+void CameraSystem::setTranslationWorld(CameraComp& comp, glm::vec3 translation)
 {
-    _view[3] = glm::vec4(translation, 1.0);
+    comp.view[3] = glm::vec4(translation, 1.0);
 }
 
-void Camera::transformWorld(glm::mat4 transform)
+void CameraSystem::transformWorld(CameraComp& comp, glm::mat4 transform)
 {
-    _view = transform * _view;
+    comp.view = transform * comp.view;
 }

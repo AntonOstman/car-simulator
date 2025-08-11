@@ -23,8 +23,8 @@
 #include "EntityComponentSystem.hpp"
 
 glm::mat4 cuberot;
-Camera camera;
-Camera cameraStill;
+// Camera camera;
+// Camera cameraStill;
 bool cameraStillChosen = false;
 
 App::App(int window_width, int window_height)
@@ -96,15 +96,15 @@ void App::createEntities()
     _ecs.addComponent(cubeid, cubeTransId);
 
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
-    camera.setTranslationWorld(glm::vec3(0,1,10));
     CameraComp camcomp;
-    camcomp.view = glm::inverse(camera.getViewToWorld());
+    CameraSystem::init(camcomp);
+    CameraSystem::setTranslationWorld(camcomp, glm::vec3(0,1,10));
+
     camcomp.perspective = perspective;
+
     CompId<CameraComp> camcompid = _ecs.createComponent(camcomp);
     _ecs.addComponent(camid, camcompid);
     _ecs.addTag(camid, "mainCamera");
-
-    // cameraStill.setTranslationWorld(glm::vec3(0,2,10));
 }
 
 void App::init()
@@ -124,64 +124,41 @@ void App::updateSystems()
 }
 void App::render()
 {
-    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // double timeValue = glfwGetTime();
-    // float greenValue = sin(timeValue) / 2.0f + 0.5f;
-    // float angle = greenValue;
-    // cuberot = Ry(glm::degrees(angle));
-    //
-    // glm::mat4 worldToView;
-    // if (cameraStillChosen)
-    // {
-    //     worldToView = glm::inverse(cameraStill.getViewToWorld());
-    // }
-    // else
-    // {
-    //     worldToView = glm::inverse(camera.getViewToWorld());
-    // }
-    //
-    // // glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
-    // glm::mat4 modelToWorld = scaled_eye(1000.0);
-    //
-    // modelToWorld = cuberot * scaled_eye(1.0);
-    // _ecs.updateEntities();
-    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // updateSystems();
     _renderingSystem.update(_ecs);
 }
 
 void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
 {
     float speed = 0.1;
+    EntityID cam = _ecs.getEntityWithTag("mainCamera");
+    CameraComp& camComp = _ecs.getComponent<CameraComp>(cam);
+     
     if (key == GLFW_KEY_W)
     {
-        camera.moveForward(speed);
+        CameraSystem::moveForward(camComp, speed);
     }
     if (key == GLFW_KEY_S)
     {
-        camera.moveBack(speed);
+        CameraSystem::moveBack(camComp, speed);
     }
 
     if (key == GLFW_KEY_A)
     {
-        camera.moveLeft(speed);
+        CameraSystem::moveLeft(camComp, speed);
     }
 
     if (key == GLFW_KEY_D)
     {
-        camera.moveRight(speed);
+        CameraSystem::moveRight(camComp, speed);
     }
 
     if (key == GLFW_KEY_Y)
     {
-        camera.moveUp(speed);
+        CameraSystem::moveUp(camComp, speed);
     }
     if (key == GLFW_KEY_U)
     {
-        camera.moveDown(speed);
+        CameraSystem::moveDown(camComp, speed);
     }
 
     if (key == GLFW_KEY_C)
@@ -210,6 +187,9 @@ void App::scroll_callback(double /*xoffset*/, double /*yoffset*/)
 
 void App::cursor_position_callback(double xpos, double ypos)
 {
+    EntityID cam = _ecs.getEntityWithTag("mainCamera");
+    CameraComp& camComp = _ecs.getComponent<CameraComp>(cam);
+
     static double prev_xpos = 0;
     static double prev_ypos = 0;
     static bool inited = false;
@@ -223,10 +203,10 @@ void App::cursor_position_callback(double xpos, double ypos)
 
     double dx = (prev_xpos - xpos);
     double dy = (prev_ypos - ypos);
-    // std::cout << dx << std::endl;
-    // std::cout << dy << std::endl;
+    std::cout << dx << std::endl;
+    std::cout << dy << std::endl;
 
-    camera.rotateRelative(glm::vec2(dx, dy));
+    CameraSystem::rotateRelative(camComp, glm::vec2(dx, dy));
     prev_xpos = xpos;
     prev_ypos = ypos;
 }
