@@ -1,4 +1,6 @@
 #include "Math.hpp"
+#include <math.h>
+#include <iostream>
 
 /*
    Returns a symmetric perspective matrix.
@@ -58,4 +60,17 @@ glm::mat4 scaled_eye(float scale){
                               0.0,   0.0,    scale, 0.0,
                               0.0,   0.0,    0.0,   1.0);
     return eye;
+}
+
+bool isclose(float ref_val, float true_val, float rel_tol, float abs_tol)
+{
+    float diff = abs(ref_val - true_val);
+    float max_val = std::fmax(abs(ref_val), true_val);
+
+    if ((diff < abs_tol) || (diff < rel_tol * max_val))
+    {
+        return true;
+    }
+
+    return false;
 }

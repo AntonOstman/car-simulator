@@ -4,8 +4,6 @@
 #include "EntityComponentSystem.hpp"
 
 
-class Model;
-
 class App {
 public:
 private:
@@ -13,6 +11,7 @@ private:
     int _height{};
     ECS _ecs;
     RenderingSystem _renderingSystem;
+    PhysicsSystem _physicsSystem;
 
 public:
     App(int window_width, int window_height);

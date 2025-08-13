@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Model.hpp"
 #include "glm/ext/matrix_float3x3.hpp"
 #include "glm/ext/vector_float3.hpp"
 #include <cstdint>
 #include <unordered_set>
-#include <memory>
 #include <unordered_map>
 #include "glad/glad.h"
+#include <string>
+#include "Loader.hpp"
 
 using EntityID = std::int32_t;
 using CompID = std::int32_t;
@@ -96,7 +96,6 @@ struct Phys: ComponentMarker{
     glm::vec3 vel;
     glm::vec3 acc;
     glm::vec3 force;
-    glm::mat3 inertia;
 };
 
 struct Mesh : ComponentMarker{
@@ -112,13 +111,6 @@ struct Transform : ComponentMarker{
 struct Rotator : ComponentMarker{
     glm::vec3 axis;
 };
-
-class PhysicsSystem : ComponentMarker{
-    public:
-        void static apply_force(Phys phys, glm::vec3 f);
-        void static time_step(Phys phys, float t);
-};
-
 
 class ECS
 {
@@ -160,6 +152,19 @@ private:
     std::unordered_map<std::string, EntityID> _tags;
     std::vector<IComponentStore*> _storages;
     std::vector<EntityID> _entities;
+};
+
+class PhysicsSystem : ComponentMarker{
+    public:
+        void static apply_force(Phys& phys, glm::vec3 f);
+        void static time_step(Phys& phys, float t);
+        void static update(ECS ecs);
+        Phys static createPhysComp();
+        void static collision(Phys& phys);
+
+        void static elastic_collision_headon(Phys& p1);
+        void static elastic_collision_immovable(Phys& p1);
+        void static elastic_collision(Phys& p1, Phys& p2);
 };
 
 class RenderingSystem{

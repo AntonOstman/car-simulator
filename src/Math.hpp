@@ -6,3 +6,4 @@ glm::mat4 Rz(float angle);
 glm::mat4 Rx(float angle);
 glm::mat4 Ry(float angle);
 glm::mat4 scaled_eye(float scale);
+bool isclose(float ref_val, float true_val, float rel_tol, float abs_tol);

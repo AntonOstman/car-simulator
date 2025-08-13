@@ -11,7 +11,6 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate
-#include "Model.hpp"
 #include "Camera.hpp"
 #include "glm/matrix.hpp"
 #include "Loader.hpp"
@@ -23,8 +22,6 @@
 #include "EntityComponentSystem.hpp"
 
 glm::mat4 cuberot;
-// Camera camera;
-// Camera cameraStill;
 bool cameraStillChosen = false;
 
 App::App(int window_width, int window_height)
@@ -95,6 +92,10 @@ void App::createEntities()
     _ecs.addComponent(floorid, floorTransId);
     _ecs.addComponent(cubeid, cubeTransId);
 
+    Phys cubePhys = _physicsSystem.createPhysComp();
+    CompId<Phys> cube_phys_id = _ecs.createComponent(cubePhys);
+    _ecs.addComponent(cubeid, cube_phys_id);
+
     glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
     CameraComp camcomp;
     CameraSystem::init(camcomp);
@@ -119,12 +120,10 @@ void App::init()
     scene->HasCameras();
 }
 
-void App::updateSystems()
-{
-}
 void App::render()
 {
     _renderingSystem.update(_ecs);
+    _physicsSystem.update(_ecs);
 }
 
 void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
@@ -203,8 +202,8 @@ void App::cursor_position_callback(double xpos, double ypos)
 
     double dx = (prev_xpos - xpos);
     double dy = (prev_ypos - ypos);
-    std::cout << dx << std::endl;
-    std::cout << dy << std::endl;
+    // std::cout << dx << std::endl;
+    // std::cout << dy << std::endl;
 
     CameraSystem::rotateRelative(camComp, glm::vec2(dx, dy));
     prev_xpos = xpos;

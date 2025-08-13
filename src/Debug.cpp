@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cstring>
+#include <glm/vec3.hpp>
 
 static GLenum lastError = 0;
 static char lastErrorFunction[1024] = "";
@@ -27,4 +28,9 @@ void printError(const char *functionName)
 	       lastError = error;
        }
    }
+}
+
+void printvec3(glm::vec3 p)
+{
+    std::cout << "x: " <<p.x << " y: " << p.y << " z: " << p.z << std::endl;
 }
