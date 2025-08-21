@@ -1,95 +1,163 @@
-from matplotlib import pyplot as plt
 import numpy as np
-from math import floor
-from math import floor
+import matplotlib.pyplot as plt
 
-world_size = 100
-grid_size = 10
+def wang_hash(x, y, seed):
+    hash_val = seed & 0xFFFFFFFF
+    hash_val ^= (x * 0x1f351f35) & 0xFFFFFFFF
+    hash_val ^= (y * 0x3f893f89) & 0xFFFFFFFF
+    hash_val = ((hash_val ^ (hash_val >> 16)) * 0x85ebca6b) & 0xFFFFFFFF
+    hash_val = ((hash_val ^ (hash_val >> 13)) * 0xc2b2ae35) & 0xFFFFFFFF
+    hash_val = (hash_val ^ (hash_val >> 16)) & 0xFFFFFFFF
+    return hash_val
 
-def plot_curve_function(func):
-    x = np.linspace(-2,2,100)
-    y = func(x)
-    plt.plot(x,y)
+def perlin_hash(x, y, seed):
+    hash_val = wang_hash(x, y, seed)
+    
+    return (hash_val & 0xFFFF) * (2.0 * np.pi / 65536.0)
+
+def perlin_hash_discrete(x, y, seed):
+    hash_val = wang_hash(x, y, seed)
+    gradient_index = hash_val & 7  
+    
+    angles = [i * np.pi / 4 for i in range(8)]
+    return angles[gradient_index]
+
+def improved_perlin_hash(x, y, seed):
+    hash_val = wang_hash(x, y, seed)
+    gradients = [
+        (1, 1), (-1, 1), (1, -1), (-1, -1),  
+        (1, 0), (-1, 0), (0, 1), (0, -1),    
+        (2, 1), (-2, 1), (1, 2), (-1, 2)     
+    ]
+    
+    gradient = gradients[hash_val % 12]
+    return np.arctan2(gradient[1], gradient[0])
+
+def terrain_noise_angle(x, y, seed, hash_func=perlin_hash):
+    return hash_func(x, y, seed)
+
+
+def generate_perlin_grid(grid_size, world_size, hash_func, seed=1234):
+    
+    grid_x, grid_y = np.meshgrid(range(grid_size), range(grid_size))
+    grid_mesh = np.stack([grid_x, grid_y], axis=-1)
+    grid = np.zeros((grid_size, grid_size, 2))
+    
+    for i in range(grid_size):
+        for j in range(grid_size):
+            angle = terrain_noise_angle(grid_mesh[i,j,0], grid_mesh[i,j,1], seed, hash_func)
+            grid[i,j,0] = np.cos(angle)
+            grid[i,j,1] = np.sin(angle)
+    
+    
+    grid_norm = np.linalg.norm(grid, axis=2, keepdims=True)
+    grid_normed = np.where(grid_norm > 0, grid / grid_norm, grid)
+    
+    return grid_normed
+
+def simple_perlin_interpolation(world_size, grid_size, grid_normed):
+    world = np.zeros((world_size, world_size))
+    
+    for wx in range(world_size):
+        for wy in range(world_size):
+            
+            gx = wx * (grid_size - 1) / (world_size - 1)
+            gy = wy * (grid_size - 1) / (world_size - 1)
+            
+            gx_int = int(gx)
+            gy_int = int(gy)
+            
+            if gx_int < grid_size - 1 and gy_int < grid_size - 1:
+                
+                fx = gx - gx_int
+                fy = gy - gy_int
+                
+                
+                g00 = grid_normed[gy_int, gx_int]
+                g01 = grid_normed[gy_int, gx_int + 1]
+                g10 = grid_normed[gy_int + 1, gx_int]
+                g11 = grid_normed[gy_int + 1, gx_int + 1]
+                
+                
+                d00 = np.array([fx, fy])
+                d01 = np.array([fx - 1, fy])
+                d10 = np.array([fx, fy - 1])
+                d11 = np.array([fx - 1, fy - 1])
+                
+                
+                dot00 = np.dot(g00, d00)
+                dot01 = np.dot(g01, d01)
+                dot10 = np.dot(g10, d10)
+                dot11 = np.dot(g11, d11)
+                
+                
+                u = 3 * fx**2 - 2 * fx**3  
+                v = 3 * fy**2 - 2 * fy**3
+                
+                top = dot00 + u * (dot01 - dot00)
+                bottom = dot10 + u * (dot11 - dot10)
+                world[wx, wy] = top + v * (bottom - top)
+    
+    return world
+
+def compare_hash_functions():
+    grid_size = 2
+    world_size = 128
+    seed = 5
+    
+    hash_functions = [
+        (lambda x, y, s: (wang_hash(x, y, s) & 0xFFFFFF) / 0xFFFFFF * 2 * np.pi, "Raw Wang Hash"),
+        (perlin_hash, "Perlin Hash (Continuous)"),
+        (perlin_hash_discrete, "Perlin Hash (8 Directions)"),
+        (improved_perlin_hash, "Improved Perlin (12 Directions)")
+    ]
+    
+    fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+    fig.suptitle('Perlin Noise with Different Hash Functions', fontsize=16)
+    
+    for i, (hash_func, title) in enumerate(hash_functions):
+        row = i // 2
+        col = i % 2
+        
+        grid_normed = generate_perlin_grid(grid_size, world_size, hash_func, seed)
+        world = simple_perlin_interpolation(world_size, grid_size, grid_normed)
+        
+        im = axes[row, col].imshow(world, cmap='terrain', interpolation='bilinear')
+        axes[row, col].set_title(title)
+        plt.colorbar(im, ax=axes[row, col], shrink=0.8)
+    
+    plt.tight_layout()
     plt.show()
 
-def hash(x, y, seed):
 
-    h = x * 374761393 + y * 668265263 + seed * 700001
-    h = (h ^ (h >> 13)) * 1274126177
-    h = (h ^ (h >> 16)) & 0xFFFFFFFF
-    return h / 0xFFFFFFFF
+def test_gradient_distribution():
+    seed = 1234
+    size = 50
+    
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
+    hash_functions = [
+        (perlin_hash, "Continuous Angles"),
+        (perlin_hash_discrete, "8 Discrete Directions"),  
+        (improved_perlin_hash, "12 Discrete Directions")
+    ]
+    
+    for i, (hash_func, title) in enumerate(hash_functions):
+        angles = []
+        for x in range(size):
+            for y in range(size):
+                angle = hash_func(x, y, seed)
+                angles.append(angle)
+        
+        axes[i].hist(angles, bins=50, alpha=0.7)
+        axes[i].set_title(f"{title}\n{len(set(angles))} unique values")
+        axes[i].set_xlabel("Angle (radians)")
+        axes[i].set_ylabel("Frequency")
+    
+    plt.tight_layout()
+    plt.show()
 
-
-def S(t):
-    """Ease curve"""
-    # return 6 * t**5 - 15*t**4 + 10*t**3
-    return 3.0*t**2 - 2.0*t**3
-
-def interpolate(x,y, ul, ur, ll, lr):
-    # interpolate in x direction
-    L = ll + S(x - floor(x))*(lr - ll)
-    U = ul + S(x - floor(x))*(ur - ul)
-    # interpolate y
-    noise = L + S(y - floor(y))*(U - L)
-    return noise 
-
-def get_ul_ur_ll_lr(gx, gy, grid):
-
-    gxidx, gyidx = floor(gx), floor(gy)
-
-    ll = np.dot(grid[gxidx,gyidx,:], np.array([gx - gxidx, gy - gyidx])) 
-    lr = np.dot(grid[gxidx+1,gyidx,:], np.array([gx - (gxidx+1), gy - gyidx])) 
-    ul = np.dot(grid[gxidx,gyidx+1,:], np.array([gx - gxidx, gy - (gyidx+1)])) 
-    ur = np.dot(grid[gxidx+1,gyidx+1,:], np.array([gx - (gxidx+1), gy - (gyidx+1)])) 
-
-    ul = np.clip(ul, -1,1)
-    ur = np.clip(ur, -1,1)
-    ll = np.clip(ll, -1,1)
-    lr = np.clip(lr, -1,1)
-
-    return ul, ur, ll, lr
-
-def world_to_grid(wx, wy, world_size, grid_size):
-    assert world_size > grid_size, 'Smaller world than grid does not make sense'
-    return wx / world_size * grid_size - 1, wy / world_size * grid_size - 1
-
-grid = 2 * np.random.rand(grid_size, grid_size, 2) - 1
-
-
-grid_norm = np.linalg.norm(grid, axis=2, keepdims=True)
-
-grid_normed = grid / grid_norm
-
-world = np.zeros((world_size, world_size, 1))
-
-for wx in range(world_size):
-    for wy in range(world_size):
-
-        gx,gy = world_to_grid(wx,wy, world_size, grid_size)
-
-        ul, ur, ll, lr = get_ul_ur_ll_lr(gx,gy,grid_normed)
-
-        world[wx,wy] = interpolate(gx,gy,ul,ur,ll,lr)
-
-# plt.imshow(world)
-# plt.show()
-
-# a = lambda t: 6 * t**5 - 15*t**4 + 10*t**3
-# b = lambda t: 3.0*t**3 - 2.0*t**2
-# c = lambda t: 36*t - 2.0
-# d = lambda t: 6 - 12*t
-
-# plot_curve_function(a)
-# plot_curve_function(b)
-# plot_curve_function(c)
-# plot_curve_function(d)
-
-a = np.arange(0,1000)
-b = np.arange(0,1000)
-aa,bb = np.meshgrid(a,b)
-
-hashes = hash(aa.flatten(),bb.flatten(),123)
-
-np.histogram(hashes.flatten())
-plt.hist(hashes, bins=10000)
-plt.show()
+if __name__ == "__main__":
+    test_gradient_distribution()
+    
+    compare_hash_functions()
