@@ -1,4 +1,5 @@
 #pragma once
+#include "worldSystem.hpp"
 #include <glm/ext/matrix_float4x4.hpp>
 #define GLFW_INCLUDE_NONE
 #include "EntityComponentSystem.hpp"
@@ -9,9 +10,10 @@ public:
 private:
     int _width{};
     int _height{};
-    ECS _ecs;
+    ECS _ecs = ECS();
     RenderingSystem _renderingSystem;
     PhysicsSystem _physicsSystem;
+    WorldSystem _worldSystem;
 
 public:
     App(int window_width, int window_height);

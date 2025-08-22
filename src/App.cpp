@@ -72,19 +72,19 @@ void App::createEntities()
     _ecs.addComponent(cubeid, program);
 
     CompId<Mesh> floormesh = _renderingSystem.createMesh(floorverts, _ecs);
-    CompId<Mesh> cubemesh = _renderingSystem.createMesh(cubeverts, _ecs);
+    CompId<Mesh> cubeMesh = _renderingSystem.createMesh(cubeverts, _ecs);
     CompId<Mesh> bunnymesh = _renderingSystem.createMesh(bunnyverts, _ecs);
 
+    _worldSystem.create_terrain(_ecs, cubeMesh, program);
+
     _ecs.addComponent(floorid, floormesh);
-    _ecs.addComponent(cubeid, cubemesh);
+    _ecs.addComponent(cubeid, cubeMesh);
     _ecs.addComponent(bunnyid, bunnymesh);
 
-    glm::mat4 floorTrans = scaled_eye(1000.0);
-    glm::mat4 cubeTrans = scaled_eye(1.0);
     Transform floorMTW;
     Transform cubeMTW;
-    floorMTW.modelToWorld = floorTrans;
-    cubeMTW.modelToWorld = cubeTrans;
+    floorMTW.init(1000.f);
+    cubeMTW.init(1.f);
 
     CompId<Transform> floorTransId = _ecs.createComponent(floorMTW);
     CompId<Transform> cubeTransId = _ecs.createComponent(cubeMTW);
@@ -96,7 +96,7 @@ void App::createEntities()
     CompId<Phys> cube_phys_id = _ecs.createComponent(cubePhys);
     _ecs.addComponent(cubeid, cube_phys_id);
 
-    glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 20.0f);
+    glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 30.0f);
     CameraComp camcomp;
     CameraSystem::init(camcomp);
     CameraSystem::setTranslationWorld(camcomp, glm::vec3(0,1,10));
@@ -110,9 +110,7 @@ void App::createEntities()
 
 void App::init()
 {
-    // glDepthMask(GL_TRUE);
-    // glViewport(0, 0, _width, _height); // Set viewport
-    _ecs = ECS();
+    _renderingSystem.init();
     createEntities();
 
     Assimp::Importer importer;

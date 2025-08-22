@@ -1,7 +1,9 @@
 #pragma once
 
+#include "Math.hpp"
 #include "glm/ext/matrix_float3x3.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include <atomic>
 #include <cstdint>
 #include <unordered_set>
 #include <unordered_map>
@@ -106,6 +108,14 @@ struct Mesh : ComponentMarker{
 
 struct Transform : ComponentMarker{
     glm::mat4 modelToWorld;
+
+    void setTranslation(glm::vec3 trans){
+        modelToWorld[3] = glm::vec4(trans, 1.0);
+    }
+
+    void init(float scale){
+        modelToWorld = scaled_eye(scale);
+    }
 };
 
 struct Rotator : ComponentMarker{
@@ -114,8 +124,18 @@ struct Rotator : ComponentMarker{
 
 class ECS
 {
+inline static std::atomic<int> _instance_count = 0;
+static constexpr int _max_instances = 1;
+
 public:
     ECS();
+
+    // Copying or moving an ECS does not make sense
+    ECS(const ECS&) = delete;
+    ECS& operator=(const ECS&) = delete;
+    ECS(ECS&&) = delete;
+    ECS& operator=(ECS&&) = delete;
+
     void init();
     void updateEntities();
     EntityID createEntity();
@@ -158,7 +178,7 @@ class PhysicsSystem : ComponentMarker{
     public:
         void static apply_force(Phys& phys, glm::vec3 f);
         void static time_step(Phys& phys, float t);
-        void static update(ECS ecs);
+        void static update(ECS& ecs);
         Phys static createPhysComp();
         void static collision(Phys& phys);
 

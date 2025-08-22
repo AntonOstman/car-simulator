@@ -100,7 +100,7 @@ Phys PhysicsSystem::createPhysComp()
     return comp;
 }
 
-void PhysicsSystem::update(ECS ecs){
+void PhysicsSystem::update(ECS& ecs){
 
     std::vector entities = ecs.intersection_entity_id<Transform, Mesh, Phys>();
     float dt = 0.1;
@@ -185,6 +185,11 @@ void RenderingSystem::setUniforms(const GLuint& program, const glm::mat4& modelp
     printError("projection RenderingSystem::setUniforms");
 } 
 
+void RenderingSystem::init()
+{
+    glDepthMask(GL_TRUE);
+}
+
 void RenderingSystem::update(ECS& ecs)
 {
 
@@ -220,6 +225,10 @@ void RenderingSystem::update(ECS& ecs)
 
 ECS::ECS()
 {
+    if(++_instance_count > _max_instances)
+    {
+        assert(false && "ECS has been instantiated more than once");
+    }
     _entities = std::vector<EntityID>();
     _storages = std::vector<IComponentStore*>();
 }
