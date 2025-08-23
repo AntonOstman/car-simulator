@@ -10,6 +10,9 @@ public:
 private:
     int _width{};
     int _height{};
+    float _fov = 45.f;
+    float _viewDist = 30.f;
+    bool _mouseDisabled = false;
     ECS _ecs = ECS();
     RenderingSystem _renderingSystem;
     PhysicsSystem _physicsSystem;
@@ -18,7 +21,9 @@ private:
 public:
     App(int window_width, int window_height);
     void createEntities();
-    void render();
+    void renderGame();
+    void createGUI();
+    void drawGUI();
     void init();
     void key_callback(int key, int scancode, int action, int mods);
     void mouse_button_callback(int button, int action, int mods);

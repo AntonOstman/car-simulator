@@ -12,8 +12,7 @@
 #include "Loader.hpp"
 
 using EntityID = std::int32_t;
-using CompID = std::int32_t;
-using StorageID = std::int32_t;
+const std::int32_t INVALID_ENTITY = -1;
 
 template<typename T>
 struct CompId
@@ -106,11 +105,37 @@ struct Mesh : ComponentMarker{
     unsigned int num_vert;
 };
 
+struct AABB {
+    glm::vec3 max;
+    glm::vec3 min;
+
+    bool isInside(glm::vec3 other)
+    {
+        bool maxCheck = (other.x < max.x) && (other.y < max.y) && (other.z < max.z);
+        bool minCheck = (other.x > min.x) && (other.y > min.y) && (other.z > min.z);
+        return minCheck && maxCheck;
+    }
+};
+
 struct Transform : ComponentMarker{
     glm::mat4 modelToWorld;
 
     void setTranslation(glm::vec3 trans){
         modelToWorld[3] = glm::vec4(trans, 1.0);
+    }
+
+    AABB getAABB(){
+        AABB box;
+        float sizex = modelToWorld[0][0];
+        float sizey = modelToWorld[1][1];
+        float sizez = modelToWorld[2][2];
+        glm::vec3 size = glm::vec3(sizex,sizey,sizez);
+
+        glm::vec3 center = glm::vec3(modelToWorld[3]);
+
+        box.min = center - size / 2.f;
+        box.max = center + size / 2.f;
+        return box;
     }
 
     void init(float scale){
@@ -144,7 +169,16 @@ public:
     void addTag(EntityID entity, std::string tag);
 
     template<typename... Components>
-    std::vector<EntityID> intersection_entity_id();
+    std::vector<EntityID> intersection_entity_id() {
+        std::vector<EntityID> intersections;
+
+        for (EntityID entity : _entities) {
+            if ((getStorage<Components>().entities.count(entity) && ...)) {
+                intersections.push_back(entity);
+            }
+        }
+        return intersections;
+    }
 
     template<typename T>
     T& getComponent(EntityID entity)

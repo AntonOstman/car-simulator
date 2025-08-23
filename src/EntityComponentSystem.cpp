@@ -10,6 +10,7 @@
 #include <string>
 #include <math.h>
 #include "Math.hpp"
+#include "Camera.hpp"
 
 std::string read_file(std::string &filename){
 
@@ -200,7 +201,7 @@ void RenderingSystem::update(ECS& ecs)
 
     EntityID cameraEntity = ecs.getEntityWithTag("mainCamera");
     CameraComp mainCamera = ecs.getComponent<CameraComp>(cameraEntity);
-    glm::mat4 view = glm::inverse(mainCamera.view);
+    glm::mat4 view = CameraSystem::getWorldToView(mainCamera);
     glm::mat4 perspective = mainCamera.perspective;
 
     std::vector<EntityID> drawables = ecs.intersection_entity_id<Transform, Mesh, ShaderComp>();
@@ -231,18 +232,6 @@ ECS::ECS()
     }
     _entities = std::vector<EntityID>();
     _storages = std::vector<IComponentStore*>();
-}
-
-template<typename... Components>
-std::vector<EntityID> ECS::intersection_entity_id() {
-    std::vector<EntityID> intersections;
-
-    for (EntityID entity : _entities) {
-        if ((getStorage<Components>().entities.count(entity) && ...)) {
-            intersections.push_back(entity);
-        }
-    }
-    return intersections;
 }
 
 void ECS::addTag(EntityID entity, std::string tag)

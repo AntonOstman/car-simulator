@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate
 #include "EntityComponentSystem.hpp"
+#include "Debug.hpp"
 
 #include "Camera.hpp"
 #include "glm/geometric.hpp"
@@ -21,9 +22,28 @@ glm::mat4 lookAt(glm::vec3 up, glm::vec3 eye, glm::vec3 center)
     return lookAt;
 }
 
-/*
-   Returns the view to world camera matrix
-*/
+
+glm::vec3 CameraSystem::getWorldPos(CameraComp& comp)
+{
+    return glm::vec3(comp.view[3]);
+}
+
+void CameraSystem::setPerspective(CameraComp& comp, float fov, float width, float height, float near, float far)
+{
+    comp.perspective = glm::perspectiveFov(glm::radians(fov), width, height, near, far);
+    // comp.perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 30.0f);
+}
+
+
+glm::vec3 CameraSystem::getForwardWorld(CameraComp& comp)
+{
+    return glm::normalize(comp.view * glm::vec4(0,0,-1,0));
+}
+
+glm::mat4 CameraSystem::getWorldToView(CameraComp& comp)
+{
+    return glm::inverse(comp.view);
+}
 
 glm::mat4 CameraSystem::getViewToWorld(CameraComp& comp)
 {
@@ -33,7 +53,7 @@ glm::mat4 CameraSystem::getViewToWorld(CameraComp& comp)
 void CameraSystem::init(CameraComp& comp)
 {
     glm::vec3 up = glm::vec3(0, 1, 0);
-    glm::vec3 eye = glm::vec3(0, 0, -10);
+    glm::vec3 eye = glm::vec3(0, 0, 10);
     glm::vec3 lookTowards = glm::vec3(0, 0, 0);
  
     comp.cur_angle = glm::vec2(0, 0);

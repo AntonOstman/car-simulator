@@ -29,6 +29,25 @@ file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS src/*)
 target_sources(${PROJECT_NAME} PRIVATE ${MY_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
+
+# Add imgui (recommended to not link as shared lib)
+## Add sources
+file(GLOB IM_GUI_SOURCE CONFIGURE_DEPENDS lib/imgui/*)
+target_sources(${PROJECT_NAME} PRIVATE ${IM_GUI_SOURCE})
+target_include_directories(${PROJECT_NAME} PRIVATE lib/imgui)
+
+## Add backend
+file(GLOB IM_GUI_BACKEND CONFIGURE_DEPENDS lib/imgui/backends/imgui_impl_opengl3* lib/imgui/backends/imgui_impl_glfw*)
+target_sources(${PROJECT_NAME} PRIVATE ${IM_GUI_BACKEND})
+target_include_directories(${PROJECT_NAME} PRIVATE lib/imgui/backends)
+# file(GLOB IM_GUI_BACKEND CONFIGURE_DEPENDS lib/imgui/backends/imgui_impl_glfw*)
+# target_sources(${PROJECT_NAME} PRIVATE ${IM_GUI_BACKEND})
+# target_include_directories(${PROJECT_NAME} PRIVATE lib/imgui/backends)
+
+## Add std::string support
+file(GLOB IM_GUI_STRING CONFIGURE_DEPENDS lib/imgui/misc/cpp/imgui_stdlib*)
+target_sources(${PROJECT_NAME} PRIVATE ${IM_GUI_STRING})
+
 ##### Link libraries #####
 
 # -- Add glad --

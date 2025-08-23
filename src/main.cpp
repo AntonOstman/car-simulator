@@ -3,9 +3,28 @@
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 static App& get_app(GLFWwindow* window)
 {
     return *reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
+}
+
+void init_imgui(GLFWwindow* window){
+
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+    ImGui_ImplOpenGL3_Init();
 }
 
 int main()
@@ -63,9 +82,10 @@ int main()
     });
 
     /* Loop until the user closes the window */
+    init_imgui(window);
     app.init();
     while (!glfwWindowShouldClose(window)) {
-        app.render();
+        app.renderGame();
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
@@ -73,6 +93,10 @@ int main()
         /* Poll for and process events */
         glfwPollEvents();
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
     return 0;

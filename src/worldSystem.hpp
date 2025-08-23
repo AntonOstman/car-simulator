@@ -5,6 +5,8 @@ class WorldSystem
 {
     public:
     static void create_terrain(ECS &ecs, CompId<Mesh> cubeMesh, CompId<ShaderComp> shader);
+    static EntityID player_raycast(ECS &ecs);
+    static void remove_block(ECS &ecs);
 };
 
 
