@@ -20,9 +20,7 @@ cd vcpkg
 
 ## Run and build program
 
-VCPKG handles some dependencies, supply correct toolchain file
-
 ```
-cmake . -B build -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+./create_build.sh
 ./run.sh
 ```
