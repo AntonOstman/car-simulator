@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Math.hpp"
-#include "glm/ext/matrix_float3x3.hpp"
 #include "glm/ext/vector_float3.hpp"
 #include <atomic>
 #include <cstdint>
@@ -9,7 +8,6 @@
 #include <unordered_map>
 #include "glad/glad.h"
 #include <string>
-#include "Loader.hpp"
 
 using EntityID = std::int32_t;
 const std::int32_t INVALID_ENTITY = -1;
@@ -55,6 +53,7 @@ template<typename T>
 struct ComponentStore : IComponentStore
 {
     std::vector<T> data;
+    std::unordered_map<std::string, CompId<T>> named_component;
 
     // TODO: Add a way to remove components
     CompId<T> createComponent(T component)
@@ -65,11 +64,26 @@ struct ComponentStore : IComponentStore
         return idx;
     }
 
+    CompId<T> createNamedComponent(T component, std::string name)
+    {
+        assert(data.size() < SIZE_MAX && "Max size_t reached");
+        CompId<T> idx = CompId<T>{data.size()};
+        data.push_back(component);
+        named_component[name] = idx;
+        return idx;
+    }
+
     void addComponent(EntityID entity, CompId<T> idx)
     {
         entityToIdx[entity] = idx;
         idxToEntity[idx.idx] = entity;
         entities.insert(entity);
+    }
+
+    CompId<T> getNamedComponent(std::string name)
+    {
+        assert(named_component.count(name) > 0 && "Named component does not exist");
+        return named_component[name];
     }
 
     T& getComponent(EntityID entity)
@@ -124,14 +138,18 @@ struct Transform : ComponentMarker{
         modelToWorld[3] = glm::vec4(trans, 1.0);
     }
 
+    glm::vec3 getTranslation(){
+        return glm::vec3(modelToWorld[3]);
+    }
+
+    glm::vec3 getSize(){
+        return glm::vec3(modelToWorld[0][0], modelToWorld[1][1], modelToWorld[2][2]) * 2.f;
+    }
+
     AABB getAABB(){
         AABB box;
-        float sizex = modelToWorld[0][0];
-        float sizey = modelToWorld[1][1];
-        float sizez = modelToWorld[2][2];
-        glm::vec3 size = glm::vec3(sizex,sizey,sizez);
-
-        glm::vec3 center = glm::vec3(modelToWorld[3]);
+        glm::vec3 size = getSize();
+        glm::vec3 center = getTranslation();
 
         box.min = center - size / 2.f;
         box.max = center + size / 2.f;
@@ -155,7 +173,7 @@ static constexpr int _max_instances = 1;
 public:
     ECS();
 
-    // Copying or moving an ECS does not make sense
+    // Copying or moving an ECS does not currently make sense
     ECS(const ECS&) = delete;
     ECS& operator=(const ECS&) = delete;
     ECS(ECS&&) = delete;
@@ -183,24 +201,64 @@ public:
     template<typename T>
     T& getComponent(EntityID entity)
     {
+        assert(entity != INVALID_ENTITY && "Invalid entity"); 
         return getStorage<T>().getComponent(entity);
+    }
+
+    template<typename T>
+    CompId<T> createNamedComponent(T component, std::string name)
+    {
+        return getStorage<T>().createNamedComponent(component, name);
+    }
+
+    template<typename T>
+    CompId<T> getNamedComponent(std::string name)
+    {
+        return getStorage<T>().getNamedComponent(name);
     }
 
     template<typename T>
     void addComponent(EntityID entity, CompId<T> idx)
     {
+        assert(entity != INVALID_ENTITY && "Invalid entity"); 
         getStorage<T>().addComponent(entity, idx);
     }
 
     template<typename T>
     CompId<T> createComponent(T component)
-    {    
+    {
         return getStorage<T>().createComponent(component);
     }
 
+
 private:
     template<typename T>
-    ComponentStore<T>& getStorage();
+    ComponentStore<T>& getStorage()
+    {
+        // Sanity check each type before creation.
+        static_assert(!std::is_pointer_v<T>, "Component type cannot be a pointer.");
+        static_assert(!std::is_reference_v<T>, "Component type cannot be a reference.");
+        static_assert(!std::is_const_v<T>, "Component type cannot be const.");
+        static_assert(!std::is_volatile_v<T>, "Component type cannot be volatile.");
+        static_assert(std::is_trivially_copyable_v<T>,
+                      "Component type must be trivially copyable for this ECS.");
+        static_assert(!std::is_base_of_v<IComponentStore, T>,
+                      "You passed a storage type instead of a component type.");
+
+        // Make sure each component is marked as a component
+        static_assert(std::is_base_of_v<ComponentMarker, T>,
+                      "Component type must inherit ComponentMarker");
+
+
+        static ComponentStore<T> storage = ComponentStore<T>{};
+        static bool registered = false;
+        if (!registered)
+        {
+            _storages.push_back(&storage);
+            registered = true;
+        }
+        return storage;
+    }
 public:
 private:
     std::unordered_map<std::string, EntityID> _tags;
@@ -221,16 +279,3 @@ class PhysicsSystem : ComponentMarker{
         void static elastic_collision(Phys& p1, Phys& p2);
 };
 
-class RenderingSystem{
-    public:
-        CompId<Mesh> static createMesh(const std::vector<Vertex> &vertices, ECS& ecs);
-        CompId<ShaderComp> static createShader(std::string frag, std::string vert, ECS& ecs);
-        void static update(ECS& ecs);
-        void static init();
-    private:
-        void static setUniforms(const GLuint& program, const glm::mat4& modelp, const glm::mat4& view, const glm::mat4& projection);
-        void static drawLines(Mesh& mesh, GLuint program);
-        void static drawTriangles(Mesh& mesh, GLuint program);
-    public:
-    private:
-};

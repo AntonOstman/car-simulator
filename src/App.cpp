@@ -1,8 +1,6 @@
 #include "App.hpp"
 #include "GLFW/glfw3.h"
 #include "glad/glad.h"
-#include <algorithm>
-#include <fstream>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -13,18 +11,17 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate
 #include "Camera.hpp"
-#include "glm/matrix.hpp"
 #include "Loader.hpp"
 
 #include <chrono>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include "Math.hpp"
 #include "EntityComponentSystem.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "UI.hpp"
 
 glm::mat4 cuberot;
 
@@ -36,48 +33,24 @@ App::App(int window_width, int window_height)
 void App::createEntities()
 {
 
-    // float floor[] = { // NOLINT
-    //      1.0f, 0.0f,  -1.0f,
-    //      -1.0f, 0.0f, -1.0f,
-    //     -1.0f, 0.0f, 1.0f,  
-    //
-    //      1.0f, 0.0f,  -1.0f,
-    //      -1.0f, 0.0f,  1.0f,
-    //      1.0f, 0.0f,  1.0f, 
-    // };
-    //
-    // std::vector<Vertex> floorverts;
-    //
-    // for (int i = 0; i < 6; i++)
-    // {
-    //     glm::vec2 uv = glm::vec2(0,0);
-    //     glm::vec3 norm = glm::vec3(0,1,0);
-    //     glm::vec3 pos = glm::vec3(floor[i*3],floor[i*3 + 1],floor[i*3 + 2]);
-    //
-    //     Vertex floorvert;
-    //     floorvert.Pos = pos;
-    //     floorvert.TexCoord = uv;
-    //     floorvert.Normal = norm;
-    //
-    //     floorverts.push_back(floorvert);
-    // }
-
     std::vector<Vertex> cubeverts = parseObj("assets/cube.obj");
     std::vector<Vertex> bunnyverts = parseObj("assets/bunny.obj");
 
-    CompId<ShaderComp> program = _renderingSystem.createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert", _ecs);
+    ShaderComp program = _renderingSystem.createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert");
+    CompId<ShaderComp> programid = _ecs.createNamedComponent(program, "standard");
 
     EntityID bunnyid = _ecs.createEntity();
     EntityID cubeid = _ecs.createEntity();
     EntityID camid = _ecs.createEntity();
 
-    _ecs.addComponent(bunnyid, program);
-    _ecs.addComponent(cubeid, program);
+    _ecs.addComponent(bunnyid, programid);
+    _ecs.addComponent(cubeid, programid);
 
-    CompId<Mesh> cubeMesh = _renderingSystem.createMesh(cubeverts, _ecs);
-    CompId<Mesh> bunnymesh = _renderingSystem.createMesh(bunnyverts, _ecs);
+    CompId<Mesh> cubeMesh = _ecs.createNamedComponent(_renderingSystem.createMesh(cubeverts), "block");
+    CompId<Mesh> bunnymesh = _ecs.createNamedComponent(_renderingSystem.createMesh(bunnyverts), "bunny");
 
-    _worldSystem.create_terrain(_ecs, cubeMesh, program);
+    _worldSystem.create_chunks();
+    _worldSystem.create_terrain(_ecs);
 
     _ecs.addComponent(cubeid, cubeMesh);
     _ecs.addComponent(bunnyid, bunnymesh);
@@ -107,6 +80,9 @@ void App::createEntities()
 
 void App::init()
 {
+    _UIsettings.debugUI = false;
+    _UIsettings.drawLines = false;
+
     _renderingSystem.init();
     createEntities();
 
@@ -125,15 +101,15 @@ void App::renderGame()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-
     ImGui::PlotLines("FPS", prev_times, IM_ARRAYSIZE(prev_times));
-    // ImGui::ShowDemoWindow(); // Show demo window! :)
     ImGui::SliderFloat("Fov", &_fov, 20, 120, "%f");
-    ImGui::SliderFloat("Viewdist", &_viewDist, 5, 120, "%f");
+    ImGui::SliderFloat("Viewdist", &_viewDist, 5, 300, "%f");
+    ImGui::Checkbox("Draw lines", &_UIsettings.drawLines);
+    ImGui::Checkbox("Debug ui", &_UIsettings.debugUI);
 
     using namespace std::chrono;
     auto start = high_resolution_clock::now();
-    _renderingSystem.update(_ecs);
+    _renderingSystem.update(_ecs, _UIsettings);
     auto render = high_resolution_clock::now();
     _physicsSystem.update(_ecs);
     auto physics = high_resolution_clock::now();
@@ -165,7 +141,7 @@ bool key_debounce(uint idx)
     times[idx] = now_time;
 
     uint time_since_last_press = now_time - prev_time;
-    std::cout << time_since_last_press << std::endl;
+    // std::cout << time_since_last_press << std::endl;
 
     if(time_since_last_press > bounce_duration_ms)
     {
@@ -183,10 +159,19 @@ void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
         return;
     }
 
-    float speed = 0.1;
+    float static speed = 0.3;
     EntityID cam = _ecs.getEntityWithTag("mainCamera");
     CameraComp& camComp = _ecs.getComponent<CameraComp>(cam);
      
+    if (key == GLFW_KEY_N)
+    {
+        speed += 0.1;
+    }
+    if (key == GLFW_KEY_M)
+    {
+        speed -= 0.1;
+    }
+
     if (key == GLFW_KEY_W)
     {
         CameraSystem::moveForward(camComp, speed);
@@ -216,7 +201,6 @@ void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
     }
     if (key == GLFW_KEY_ESCAPE)
     {
-        std::cout << "ecs press" << std::endl;
         if (key_debounce(key))
         {
             _mouseDisabled = !_mouseDisabled;
@@ -224,9 +208,16 @@ void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
     }
 }
 
-void App::mouse_button_callback(int /*button*/, int /*action*/, int /*mods*/)
+void App::mouse_button_callback(int button, int action, int /*mods*/)
 {
-    WorldSystem::remove_block(_ecs);
+    if (button == 0 && action == 1)
+    {
+        WorldSystem::remove_block(_ecs);
+    }
+    if (button == 1 && action == 1)
+    {
+        WorldSystem::place_block(_ecs);
+    }
 }
 
 void App::scroll_callback(double /*xoffset*/, double /*yoffset*/)
@@ -237,18 +228,20 @@ void App::scroll_callback(double /*xoffset*/, double /*yoffset*/)
 void App::cursor_position_callback(double xpos, double ypos)
 {
 
+    static double prev_xpos = 0;
+    static double prev_ypos = 0;
+    static bool inited = false;
+
     EntityID cam = _ecs.getEntityWithTag("mainCamera");
     CameraComp& camComp = _ecs.getComponent<CameraComp>(cam);
     CameraSystem::setPerspective(camComp, _fov, _width, _height, 0.1f, _viewDist);
 
     if (ImGui::GetIO().WantCaptureMouse || _mouseDisabled)
     {
+        prev_xpos = xpos;
+        prev_ypos = ypos;
         return;
     }
-
-    static double prev_xpos = 0;
-    static double prev_ypos = 0;
-    static bool inited = false;
 
     if (!inited)
     {

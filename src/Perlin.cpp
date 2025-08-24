@@ -81,10 +81,6 @@ float PerlinNoise::fade(float t) {
 float PerlinNoise::perlin_noise_at(const glm::vec2& pos, uint32_t seed) {
 
     glm::ivec2 grid_pos = glm::ivec2(glm::floor(pos));
-    printf("grid pos\n");
-    printvec(grid_pos);
-    printf("pos\n");
-    printvec(pos);
 
     glm::vec2 local_pos = pos - glm::vec2(grid_pos);
 

@@ -1,8 +1,10 @@
 #pragma once
+#include "UI.hpp"
 #include "worldSystem.hpp"
 #include <glm/ext/matrix_float4x4.hpp>
-#define GLFW_INCLUDE_NONE
+
 #include "EntityComponentSystem.hpp"
+#include "RenderingSystem.hpp"
 
 
 class App {
@@ -10,6 +12,8 @@ public:
 private:
     int _width{};
     int _height{};
+
+    UIsettings _UIsettings;
     float _fov = 45.f;
     float _viewDist = 30.f;
     bool _mouseDisabled = false;
@@ -17,6 +21,7 @@ private:
     RenderingSystem _renderingSystem;
     PhysicsSystem _physicsSystem;
     WorldSystem _worldSystem;
+    EntitySpawner _entitySpawner;
 
 public:
     App(int window_width, int window_height);
