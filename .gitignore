@@ -4,6 +4,5 @@ build/
 out/
 compile_commands.json
 *.vim
-vcpkg/
 *~
 .cache/

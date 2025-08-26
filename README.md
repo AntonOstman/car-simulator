@@ -11,16 +11,16 @@ sudo apt-get install libx11-dev libglfw3-dev xorg-dev
 Install vcpkg in project root (or fix all paths to vcpkg)
 
 ```
-git clone https://github.com/Microsoft/vcpkg.git
+git submodule update --init --recursive
 cd vcpkg
 ./bootstrap-vcpkg.sh
-./vcpkg integrate install
 ./vcpkg install assimp
 ```
 
-## Run and build program
+## Install dependencies, build and run
 
 ```
+./install.sh
 ./create_build.sh
 ./run.sh
 ```
