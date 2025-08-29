@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EntityComponentSystem.hpp"
+#include "Loader.hpp"
 
 class EntitySpawner
 {
@@ -48,6 +49,7 @@ public:
 private:
     void handleEdit(ECS& ecs, glm::uvec3& pos, Edit edit);
     Vec3Hash uvec3hash(glm::uvec3& pos);
+    std::vector<Vertex> createChunkMesh(ECS& ecs, std::vector<Vertex> cube);
 
 };
 
@@ -56,6 +58,7 @@ class WorldSystem
 {
 private:
     std::vector<Chunk> _chunks;
+    std::vector<Vertex> _cubeVerts;
 
 public:
     void create_chunks();
@@ -64,5 +67,7 @@ public:
     static void remove_block(ECS &ecs);
     void static place_block(ECS &ecs);
     std::vector<glm::ivec3> static active_chunks();
+    void set_cube(std::vector<Vertex> cube);
+
 
 };

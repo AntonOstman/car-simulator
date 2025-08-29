@@ -4,8 +4,6 @@
 #include <sstream>
 #include <iostream>
 #include "Loader.hpp"
-#include "glm/ext/vector_float3.hpp"
-#include "glm/ext/vector_float2.hpp"
 
 std::vector<Vertex> orderVertices(std::string filename, Vertices verts);
 

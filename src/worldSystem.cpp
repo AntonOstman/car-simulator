@@ -5,6 +5,7 @@
 #include <worldSystem.hpp>
 #include "Perlin.hpp"
 #include "Camera.hpp"
+#include "Loader.hpp"
 
 std::vector<glm::ivec3> WorldSystem::active_chunks()
 {
@@ -17,10 +18,16 @@ glm::ivec3 Chunk::getChunkToWorld(glm::ivec3 pos)
     return pos * (int) CHUNK_SIZE;
 }
 
-// TODO should not exist, test function for now..
+// Ugly for now...
+void WorldSystem::set_cube(std::vector<Vertex> cube)
+{
+    _cubeVerts = cube;
+}
+
+// TODO (me) should not exist, test function for now..
 void WorldSystem::create_chunks()
 {
-    // TODO these should be privates in chunk.......
+    // TODO (me) these should be privates in chunk.......
     for (int i = 0; i < 2; i ++)
     {
         for (int j = 0; j < 2; j ++)
@@ -32,7 +39,7 @@ void WorldSystem::create_chunks()
     }
 }
 
-// TODO can probably be optimised with hash maps... fine for now
+// TODO (me): can probably be optimised with hash maps... fine for now
 void WorldSystem::create_terrain(ECS &ecs)
 {
     for (Chunk chunk : _chunks)
@@ -178,17 +185,64 @@ void Chunk::createChunk(ECS& ecs)
                    handleEdit(ecs, pos, edit);
                 }
 
-                EntitySpawner::create_cube(ecs, pos, "block", "standard");
                 glm::vec3 worldpos = glm::vec3(position.x + x, height, position.z + z);
 
                 EntityID entity = EntitySpawner::create_cube(ecs, worldpos, "block", "standard");
                 _entities.push_back(entity);
-                break;
+                // break;
 
             }
         }
     }
 }
+
+std::vector<Vertex> Chunk::createChunkMesh(ECS& ecs, std::vector<Vertex> cube)
+{
+
+    std::vector<Vertex> vertices;
+
+    for (uint x = 0; x < CHUNK_SIZE; x++)
+    {
+        for (uint z = 0; z < CHUNK_SIZE; z++)
+        {
+            const float frequency = 10.f;
+            const float amplitude = 4.f;
+            const float dc = 0.f;
+            float noisex = 1.f/frequency * (float)(x + position.x);
+            float noisez = 1.f/frequency * (float)(z + position.z);
+
+            const float height = PerlinNoise::perlin_noise_at(noisex, noisez, 0) * amplitude + dc;
+
+            for (uint y = 0; y < CHUNK_SIZE; y++)
+            {
+                if (y > height)
+                {
+                    break;
+                }
+
+                glm::uvec3 pos = glm::uvec3(x,y,z);
+                if (_edits.count(uvec3hash(pos)) > 0)
+                {
+                   Edit edit = _edits[uvec3hash(pos)];
+                   handleEdit(ecs, pos, edit);
+                }
+
+                glm::vec3 chunkpos = glm::vec3(x, height, z);
+
+                for (uint i = 0; i < cube.size(); i++)
+                {
+                    Vertex new_vertex;
+                    new_vertex.Pos = cube[i].Pos + chunkpos;
+                    new_vertex.TexCoord = cube[i].TexCoord;
+                    new_vertex.Normal = cube[i].Normal;
+                    vertices.push_back(new_vertex);
+                }
+            }
+        }
+    }
+    return vertices;
+}
+
 
 void Chunk::removeChunk(ECS& ecs)
 {

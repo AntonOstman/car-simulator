@@ -175,7 +175,7 @@ Mesh RenderingSystem::createMesh(const std::vector<Vertex> &vertices)
     printError("Model::bind::vertex");
 
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, TexCoord)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, TexCoord)));
     printError("Model::bind::tex");
 
     glEnableVertexAttribArray(2);

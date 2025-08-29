@@ -49,6 +49,7 @@ void App::createEntities()
     CompId<Mesh> cubeMesh = _ecs.createNamedComponent(_renderingSystem.createMesh(cubeverts), "block");
     CompId<Mesh> bunnymesh = _ecs.createNamedComponent(_renderingSystem.createMesh(bunnyverts), "bunny");
 
+    _worldSystem.set_cube(cubeverts);
     _worldSystem.create_chunks();
     _worldSystem.create_terrain(_ecs);
 

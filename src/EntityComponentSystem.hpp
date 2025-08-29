@@ -9,8 +9,8 @@
 #include "glad/glad.h"
 #include <string>
 
-using EntityID = std::int32_t;
-const std::int32_t INVALID_ENTITY = -1;
+using EntityID = int32_t;
+const int32_t INVALID_ENTITY = -1;
 
 template<typename T>
 struct CompId
@@ -52,23 +52,36 @@ struct IComponentStore
 template<typename T>
 struct ComponentStore : IComponentStore
 {
+    using DataIdx = uint32_t;
     std::vector<T> data;
+    std::vector<DataIdx> free_indices;
     std::unordered_map<std::string, CompId<T>> named_component;
 
     // TODO: Add a way to remove components
     CompId<T> createComponent(T component)
     {
         assert(data.size() < SIZE_MAX && "Max size_t reached");
-        CompId<T> idx = CompId<T>{data.size()};
-        data.push_back(component);
-        return idx;
+        if (free_indices.empty())
+        {
+            CompId<T> idx = CompId<T>{data.size()};
+            data.push_back(component);
+            return idx;
+        }
+        else
+        {
+            uint32_t free_idx = free_indices[free_indices.size() - 1];
+            free_indices.pop_back();
+            data[free_idx] = component;
+            CompId<T> idx = CompId<T>{free_idx};
+
+            return idx;
+        }
     }
 
     CompId<T> createNamedComponent(T component, std::string name)
     {
         assert(data.size() < SIZE_MAX && "Max size_t reached");
-        CompId<T> idx = CompId<T>{data.size()};
-        data.push_back(component);
+        CompId<T> idx = createComponent(component);
         named_component[name] = idx;
         return idx;
     }
@@ -78,6 +91,16 @@ struct ComponentStore : IComponentStore
         entityToIdx[entity] = idx;
         idxToEntity[idx.idx] = entity;
         entities.insert(entity);
+    }
+
+    void destoryComponent(CompId<T> idx)
+    {
+        // Sanity check for container... Can be removed later
+        for (EntityID entity: entities)
+        {
+            assert(idxToEntity[entity] != idx.idx && "Component with attached entity is being destroyed");
+        }
+        free_indices.push_back(idx.idx);
     }
 
     CompId<T> getNamedComponent(std::string name)
