@@ -1,10 +1,6 @@
 #pragma once
 #include "UI.hpp"
-#include "worldSystem.hpp"
 #include <glm/ext/matrix_float4x4.hpp>
-
-#include "EntityComponentSystem.hpp"
-#include "RenderingSystem.hpp"
 
 
 class App {
@@ -16,12 +12,8 @@ private:
     UIsettings _UIsettings;
     float _fov = 45.f;
     float _viewDist = 30.f;
+    float _cubePos = 20.f;
     bool _mouseDisabled = false;
-    ECS _ecs = ECS();
-    RenderingSystem _renderingSystem;
-    PhysicsSystem _physicsSystem;
-    WorldSystem _worldSystem;
-    EntitySpawner _entitySpawner;
 
 public:
     App(int window_width, int window_height);

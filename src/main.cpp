@@ -84,7 +84,9 @@ int main()
 
     /* Loop until the user closes the window */
     init_imgui(window);
+
     app.init();
+
     while (!glfwWindowShouldClose(window)) {
         app.renderGame();
 

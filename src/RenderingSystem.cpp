@@ -1,9 +1,7 @@
-#include "EntityComponentSystem.hpp"
-#include "UI.hpp"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "RenderingSystem.hpp"
 #include "Debug.hpp"
-#include "Camera.hpp"
+#include "Loader.hpp"
 #include <iostream>
 #include <fstream>
 
@@ -106,48 +104,9 @@ void RenderingSystem::init()
     glDepthMask(GL_TRUE);
 }
 
-void RenderingSystem::update(ECS& ecs, UIsettings settings)
+Shader RenderingSystem::createShader(std::string frag, std::string vert)
 {
-
-    printError("before RenderingSystem::update");
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    printError("after RenderingSystem::update");
-
-    EntityID cameraEntity = ecs.getEntityWithTag("mainCamera");
-    CameraComp mainCamera = ecs.getComponent<CameraComp>(cameraEntity);
-    glm::mat4 view = CameraSystem::getWorldToView(mainCamera);
-    glm::mat4 perspective = mainCamera.perspective;
-
-    std::vector<EntityID> drawables = ecs.intersection_entity_id<Transform, Mesh, ShaderComp>();
-
-    if (drawables.empty())
-    {
-        std::cout << "No drawables found" << std::endl;
-    }
-
-    for (EntityID drawable : drawables)
-    {
-        Transform transform = ecs.getComponent<Transform>(drawable);
-        Mesh mesh = ecs.getComponent<Mesh>(drawable);
-        ShaderComp shader = ecs.getComponent<ShaderComp>(drawable);
-        glm::mat4 model = transform.modelToWorld;
-
-        RenderingSystem::setUniforms(shader.program, model, view, perspective);
-        if (settings.drawLines)
-        {
-            RenderingSystem::drawLines(mesh, shader.program);
-        }
-        else
-        {
-            RenderingSystem::drawTriangles(mesh, shader.program);
-        }
-    }
-}
-
-ShaderComp RenderingSystem::createShader(std::string frag, std::string vert)
-{
-    ShaderComp shader;
+    Shader shader;
     GLuint program = compile_shader(vert, frag);
     shader.program = program;
     return shader;

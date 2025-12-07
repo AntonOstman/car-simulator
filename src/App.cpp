@@ -1,6 +1,7 @@
 #include "App.hpp"
-#include "GLFW/glfw3.h"
+#include "Math.hpp"
 #include "glad/glad.h"
+#include "GLFW/glfw3.h"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -12,92 +13,54 @@
 #include <glm/ext.hpp> // perspective, translate, rotate
 #include "Camera.hpp"
 #include "Loader.hpp"
+#include "Debug.hpp"
 
 #include <chrono>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include "EntityComponentSystem.hpp"
+#include "RenderingSystem.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "UI.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
 
-glm::mat4 cuberot;
 
-App::App(int window_width, int window_height)
-{
-    size_callback(window_width, window_height);
-}
-
-void App::createEntities()
-{
-
-    std::vector<Vertex> cubeverts = parseObj("assets/cube.obj");
-    std::vector<Vertex> bunnyverts = parseObj("assets/bunny.obj");
-
-    ShaderComp program = _renderingSystem.createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert");
-    CompId<ShaderComp> programid = _ecs.createNamedComponent(program, "standard");
-
-    EntityID bunnyid = _ecs.createEntity();
-    EntityID cubeid = _ecs.createEntity();
-    EntityID camid = _ecs.createEntity();
-
-    _ecs.addComponent(bunnyid, programid);
-    _ecs.addComponent(cubeid, programid);
-
-    CompId<Mesh> cubeMesh = _ecs.createNamedComponent(_renderingSystem.createMesh(cubeverts), "block");
-    CompId<Mesh> bunnymesh = _ecs.createNamedComponent(_renderingSystem.createMesh(bunnyverts), "bunny");
-
-    _worldSystem.set_cube(cubeverts);
-    _worldSystem.create_chunks();
-    _worldSystem.create_terrain(_ecs);
-
-    _ecs.addComponent(cubeid, cubeMesh);
-    _ecs.addComponent(bunnyid, bunnymesh);
-
-    Transform cubeMTW;
-    cubeMTW.init(1.f);
-
-    CompId<Transform> cubeTransId = _ecs.createComponent(cubeMTW);
-
-    _ecs.addComponent(cubeid, cubeTransId);
-
-    Phys cubePhys = _physicsSystem.createPhysComp();
-    CompId<Phys> cube_phys_id = _ecs.createComponent(cubePhys);
-    _ecs.addComponent(cubeid, cube_phys_id);
-
-    glm::mat4 perspective = glm::perspectiveFov(glm::radians(45.0f), (float) _width, (float) _height, 0.1f, 30.0f);
-    CameraComp camcomp;
-    CameraSystem::init(camcomp);
-    CameraSystem::setTranslationWorld(camcomp, glm::vec3(0,1,10));
-
-    camcomp.perspective = perspective;
-
-    CompId<CameraComp> camcompid = _ecs.createComponent(camcomp);
-    _ecs.addComponent(camid, camcompid);
-    _ecs.addTag(camid, "mainCamera");
-}
+Mesh cube;
+Shader shader;
+Camera camera;
 
 void App::init()
 {
     _UIsettings.debugUI = false;
     _UIsettings.drawLines = false;
-
-    _renderingSystem.init();
-    createEntities();
+    shader = RenderingSystem::createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert");
+    std::vector<Vertex> cube_verts = parseObj("assets/cube.obj");
+    camera.setView();
+    camera.setPerspective(45, _width,_height,0.1, 30);
+    cube = RenderingSystem::createMesh(cube_verts);
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile("assets/cube.obj", aiProcess_Triangulate);
     scene->HasCameras();
 }
 
-const int size = 100;
-int idx = 0;
-float prev_times[size];
-
+App::App(int window_width, int window_height)
+{
+    size_callback(window_width, window_height);
+}
 void App::renderGame()
 {
+    static const int size = 100;
+    static int idx = 0;
+    static float prev_times[size];
+    printError("before RenderingSystem::update");
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    printError("after RenderingSystem::update");
+    
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -105,17 +68,23 @@ void App::renderGame()
     ImGui::PlotLines("FPS", prev_times, IM_ARRAYSIZE(prev_times));
     ImGui::SliderFloat("Fov", &_fov, 20, 120, "%f");
     ImGui::SliderFloat("Viewdist", &_viewDist, 5, 300, "%f");
+    ImGui::SliderFloat("Cubepos", &_cubePos, -300, 300, "%f");
     ImGui::Checkbox("Draw lines", &_UIsettings.drawLines);
     ImGui::Checkbox("Debug ui", &_UIsettings.debugUI);
 
     using namespace std::chrono;
     auto start = high_resolution_clock::now();
-    _renderingSystem.update(_ecs, _UIsettings);
     auto render = high_resolution_clock::now();
-    _physicsSystem.update(_ecs);
     auto physics = high_resolution_clock::now();
     float render_fps = 1000.f / (duration_cast<milliseconds>(render - start).count());
     float phys_fps = 1000.f / (duration_cast<milliseconds>(physics - render).count());
+
+    glm::mat4 model = scaled_eye(1);
+    model[3] = glm::vec4(0,0,_cubePos,1);
+    RenderingSystem::setUniforms(shader.program, model, camera.getWorldToView(), camera.getPerspective());
+    std::cout << glm::to_string(model) << std::endl;
+
+    RenderingSystem::drawTriangles(cube, shader.program);
 
     idx = (idx + 1) % size;
 
@@ -161,8 +130,6 @@ void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
     }
 
     float static speed = 0.3;
-    EntityID cam = _ecs.getEntityWithTag("mainCamera");
-    CameraComp& camComp = _ecs.getComponent<CameraComp>(cam);
      
     if (key == GLFW_KEY_N)
     {
@@ -175,30 +142,30 @@ void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
 
     if (key == GLFW_KEY_W)
     {
-        CameraSystem::moveForward(camComp, speed);
+        camera.moveForward(speed);
     }
     if (key == GLFW_KEY_S)
     {
-        CameraSystem::moveBack(camComp, speed);
+        camera.moveBack(speed);
     }
 
     if (key == GLFW_KEY_A)
     {
-        CameraSystem::moveLeft(camComp, speed);
+        camera.moveLeft(speed);
     }
 
     if (key == GLFW_KEY_D)
     {
-        CameraSystem::moveRight(camComp, speed);
+        camera.moveRight(speed);
     }
 
     if (key == GLFW_KEY_Y)
     {
-        CameraSystem::moveUp(camComp, speed);
+        camera.moveUp(speed);
     }
     if (key == GLFW_KEY_U)
     {
-        CameraSystem::moveDown(camComp, speed);
+        camera.moveDown(speed);
     }
     if (key == GLFW_KEY_ESCAPE)
     {
@@ -213,11 +180,11 @@ void App::mouse_button_callback(int button, int action, int /*mods*/)
 {
     if (button == 0 && action == 1)
     {
-        WorldSystem::remove_block(_ecs);
+       std::cout << "click" << std::endl;
     }
     if (button == 1 && action == 1)
     {
-        WorldSystem::place_block(_ecs);
+       std::cout << "click" << std::endl;
     }
 }
 
@@ -229,13 +196,13 @@ void App::scroll_callback(double /*xoffset*/, double /*yoffset*/)
 void App::cursor_position_callback(double xpos, double ypos)
 {
 
+
+
     static double prev_xpos = 0;
     static double prev_ypos = 0;
     static bool inited = false;
-
-    EntityID cam = _ecs.getEntityWithTag("mainCamera");
-    CameraComp& camComp = _ecs.getComponent<CameraComp>(cam);
-    CameraSystem::setPerspective(camComp, _fov, _width, _height, 0.1f, _viewDist);
+    double dx = (prev_xpos - xpos);
+    double dy = (prev_ypos - ypos);
 
     if (ImGui::GetIO().WantCaptureMouse || _mouseDisabled)
     {
@@ -251,14 +218,11 @@ void App::cursor_position_callback(double xpos, double ypos)
         prev_ypos = ypos;
     }
 
-    double dx = (prev_xpos - xpos);
-    double dy = (prev_ypos - ypos);
-    // std::cout << dx << std::endl;
-    // std::cout << dy << std::endl;
+    camera.rotateRelative(glm::vec2(dx, dy));
 
-    CameraSystem::rotateRelative(camComp, glm::vec2(dx, dy));
     prev_xpos = xpos;
     prev_ypos = ypos;
+
 }
 
 void App::size_callback(int width, int height)
