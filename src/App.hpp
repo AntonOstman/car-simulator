@@ -1,5 +1,6 @@
 #pragma once
 #include "UI.hpp"
+#include "World.hpp"
 #include <glm/ext/matrix_float4x4.hpp>
 
 
@@ -14,6 +15,8 @@ private:
     float _viewDist = 30.f;
     float _cubePos = 20.f;
     bool _mouseDisabled = false;
+    World _world;
+    RenderingSystem _renderer;
 
 public:
     App(int window_width, int window_height);

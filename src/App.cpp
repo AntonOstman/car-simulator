@@ -28,19 +28,16 @@
 #include <glm/gtx/string_cast.hpp>
 
 
-Mesh cube;
-Shader shader;
 Camera camera;
 
 void App::init()
 {
     _UIsettings.debugUI = false;
     _UIsettings.drawLines = false;
-    shader = RenderingSystem::createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert");
-    std::vector<Vertex> cube_verts = parseObj("assets/cube.obj");
     camera.setView();
     camera.setPerspective(45, _width,_height,0.1, 30);
-    cube = RenderingSystem::createMesh(cube_verts);
+    RenderingSystem::init();
+    _world.create_world();
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile("assets/cube.obj", aiProcess_Triangulate);
@@ -79,12 +76,7 @@ void App::renderGame()
     float render_fps = 1000.f / (duration_cast<milliseconds>(render - start).count());
     float phys_fps = 1000.f / (duration_cast<milliseconds>(physics - render).count());
 
-    glm::mat4 model = scaled_eye(1);
-    model[3] = glm::vec4(0,0,_cubePos,1);
-    RenderingSystem::setUniforms(shader.program, model, camera.getWorldToView(), camera.getPerspective());
-    std::cout << glm::to_string(model) << std::endl;
-
-    RenderingSystem::drawTriangles(cube, shader.program);
+    _world.renderWorld(camera.getWorldToView(), camera.getPerspective());
 
     idx = (idx + 1) % size;
 

@@ -2,8 +2,12 @@
 #include "RenderingSystem.hpp"
 #include "Debug.hpp"
 #include "Loader.hpp"
+#include "Entity.hpp"
 #include <iostream>
 #include <fstream>
+
+static std::unordered_map<MeshType, Mesh> meshes;
+static std::unordered_map<ShaderType, Shader> shaders;
 
 std::string read_file(std::string &filename){
 
@@ -102,6 +106,18 @@ void RenderingSystem::setUniforms(const GLuint& program, const glm::mat4& modelp
 void RenderingSystem::init()
 {
     glDepthMask(GL_TRUE);
+
+    static Mesh cube;
+    static Shader shader;
+
+    shader = RenderingSystem::createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert");
+    std::vector<Vertex> cube_verts = parseObj("assets/cube.obj");
+
+    cube = RenderingSystem::createMesh(cube_verts);
+    shader = RenderingSystem::createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert");
+
+    meshes[CUBE] = cube;
+    shaders[STANDARD] = shader;
 }
 
 Shader RenderingSystem::createShader(std::string frag, std::string vert)
@@ -177,4 +193,23 @@ void RenderingSystem::drawLines(Mesh& mesh, GLuint program)
     printError("RenderingSystem::drawLines draw error");
 
     glBindVertexArray(0);
+}
+
+void RenderingSystem::renderMesh(MeshType meshType, ShaderType shaderType, glm::mat4 modelToWorld, glm::mat4 worldToView, glm::mat4 projection)
+{
+    Shader shader = getShader(shaderType);
+    Mesh mesh = getMesh(meshType);
+
+    setUniforms(shader.program, modelToWorld, worldToView, projection);
+    drawTriangles(mesh, shader.program);
+}
+
+Mesh RenderingSystem::getMesh(MeshType mesh)
+{
+    return meshes[mesh];
+}
+
+Shader RenderingSystem::getShader(ShaderType shader)
+{
+    return shaders[shader];
 }
