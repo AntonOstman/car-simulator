@@ -11,10 +11,12 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp> // perspective, translate, rotate
+#include <iostream>
 #include "Camera.hpp"
 #include "Loader.hpp"
 #include "Debug.hpp"
 
+#include <vector>
 #include <chrono>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -28,16 +30,20 @@
 #include <glm/gtx/string_cast.hpp>
 
 
-Camera camera;
+static Entity player;
+static Entity dude(MeshType::CUBE, ShaderType::STANDARD);
+static std::vector<Entity> entities;
+static bool use_physics = false;
 
 void App::init()
 {
     _UIsettings.debugUI = false;
     _UIsettings.drawLines = false;
-    camera.setView();
-    camera.setPerspective(45, _width,_height,0.1, 30);
+    player._camera.setView();
+    player._camera.setPerspective(45, _width,_height,0.1, 30);
     RenderingSystem::init();
     _world.create_world();
+    entities.push_back(dude);
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile("assets/cube.obj", aiProcess_Triangulate);
@@ -48,6 +54,13 @@ App::App(int window_width, int window_height)
 {
     size_callback(window_width, window_height);
 }
+
+void App::gameLoop()
+{
+   gameUpdate();
+   renderGame();
+}
+
 void App::renderGame()
 {
     static const int size = 100;
@@ -72,11 +85,11 @@ void App::renderGame()
     using namespace std::chrono;
     auto start = high_resolution_clock::now();
     auto render = high_resolution_clock::now();
-    auto physics = high_resolution_clock::now();
+    _world.renderWorld(player._camera.getWorldToView(), player._camera.getPerspective());
     float render_fps = 1000.f / (duration_cast<milliseconds>(render - start).count());
+    auto physics = high_resolution_clock::now();
     float phys_fps = 1000.f / (duration_cast<milliseconds>(physics - render).count());
 
-    _world.renderWorld(camera.getWorldToView(), camera.getPerspective());
 
     idx = (idx + 1) % size;
 
@@ -88,8 +101,22 @@ void App::renderGame()
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-bool key_debounce(uint idx)
+void App::gameUpdate()
 {
+   using namespace std::chrono;
+
+   auto start = high_resolution_clock::now();
+   static auto prev = high_resolution_clock::now();
+   float dt = duration_cast<milliseconds>(start - prev).count() / 1000.f;
+   player.physics_update(dt);
+   prev = start;
+   player.transform_update();
+}
+
+
+bool keyDebounce(uint idx)
+{
+
     using namespace std::chrono;
 
     const uint keys = GLFW_KEY_LAST;
@@ -103,14 +130,8 @@ bool key_debounce(uint idx)
     times[idx] = now_time;
 
     uint time_since_last_press = now_time - prev_time;
-    // std::cout << time_since_last_press << std::endl;
 
-    if(time_since_last_press > bounce_duration_ms)
-    {
-        return true;
-    }
-
-    return false;
+    return time_since_last_press > bounce_duration_ms;
 
 }
 
@@ -121,51 +142,67 @@ void App::key_callback(int key, int /*scancode*/, int /*action*/, int /*mods*/)
         return;
     }
 
-    float static speed = 0.3;
+    float static speed = -3.0;
      
     if (key == GLFW_KEY_N)
     {
-        speed += 0.1;
+        speed += 1.0;
     }
     if (key == GLFW_KEY_M)
     {
-        speed -= 0.1;
+        speed -= 1.0;
     }
+
+    glm::vec3 velocity = glm::vec3(0);
 
     if (key == GLFW_KEY_W)
     {
-        camera.moveForward(speed);
+        velocity += glm::vec3(0,0,speed);
+        // player._camera.moveForward(speed);
     }
     if (key == GLFW_KEY_S)
     {
-        camera.moveBack(speed);
+        velocity += glm::vec3(0,0,-speed);
+        // player._camera.moveBack(speed);
     }
 
     if (key == GLFW_KEY_A)
     {
-        camera.moveLeft(speed);
+        velocity += glm::vec3(speed,0,0);
+        // player._camera.moveLeft(speed);
     }
 
     if (key == GLFW_KEY_D)
     {
-        camera.moveRight(speed);
+        velocity += glm::vec3(-speed,0,0);
+        // player._camera.moveRight(speed);
     }
 
     if (key == GLFW_KEY_Y)
     {
-        camera.moveUp(speed);
+        velocity += glm::vec3(0,speed,0);
+        // player._camera.moveUp(speed);
     }
     if (key == GLFW_KEY_U)
     {
-        camera.moveDown(speed);
+        velocity += glm::vec3(0,-speed,0);
+        // player._camera.moveUp(speed);
+        // player._camera.moveDown(speed);
+    }
+    if (key == GLFW_KEY_I)
+    {
+       use_physics = false;
     }
     if (key == GLFW_KEY_ESCAPE)
     {
-        if (key_debounce(key))
+        if (keyDebounce(key))
         {
             _mouseDisabled = !_mouseDisabled;
         }
     }
+
+    player.moveSimple(velocity);
+    std::cout << velocity.x << velocity.y << velocity.z << std::endl;
 }
 
 void App::mouse_button_callback(int button, int action, int /*mods*/)
@@ -210,7 +247,7 @@ void App::cursor_position_callback(double xpos, double ypos)
         prev_ypos = ypos;
     }
 
-    camera.rotateRelative(glm::vec2(dx, dy));
+    player._camera.rotateRelative(glm::vec2(dx, dy));
 
     prev_xpos = xpos;
     prev_ypos = ypos;

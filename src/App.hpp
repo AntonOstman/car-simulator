@@ -22,6 +22,7 @@ public:
     App(int window_width, int window_height);
     void createEntities();
     void renderGame();
+    void gameLoop();
     void createGUI();
     void drawGUI();
     void init();
@@ -31,4 +32,5 @@ public:
     void cursor_position_callback(double xpos, double ypos);
     void size_callback(int width, int height);
     void updateSystems();
+    void gameUpdate();
 };

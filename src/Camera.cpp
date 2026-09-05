@@ -62,12 +62,17 @@ Camera::Camera()
 void Camera::setView()
 {
     glm::vec3 up = glm::vec3(0, 1, 0);
-    glm::vec3 eye = glm::vec3(0, 0, 10);
+    glm::vec3 eye = glm::vec3(0, 0, -10);
     glm::vec3 lookTowards = glm::vec3(0, 0, 0);
  
     _cur_angle = glm::vec2(0, 0);
     _view = lookAt(up, eye, lookTowards);
     // comp.view = glm::lookAt(eye, lookTowards, up);
+}
+
+glm::mat3 Camera::getRotation()
+{
+   return glm::mat3(_view);
 }
 
 void Camera::moveForward(float speed)

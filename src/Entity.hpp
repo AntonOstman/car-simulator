@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math.hpp"
+#include "Camera.hpp"
 #include "RenderingSystem.hpp"
 
 struct Phys{
@@ -57,13 +58,19 @@ class Entity
 {
     public:
         Entity(MeshType mesh, ShaderType shader);
+        Entity();
         MeshType _mesh;
         ShaderType _shader;
         Phys _phys;
         Transform _transform;
+        Camera _camera;
         float _size;
         void setPosition(glm::vec3 pos);
         void render(glm::mat4 worldToView, glm::mat4 projection);
+        void physics_update(float dt);
+        void transform_update();
+        void move(glm::vec3 velocity);
+        void addAcceleration(glm::vec3 acc);
+        void moveSimple(glm::vec3 velocity);
     private:
-        void update();
 };

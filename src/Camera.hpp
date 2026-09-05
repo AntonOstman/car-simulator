@@ -20,6 +20,8 @@ public:
     void moveUp(float speed);
     void moveDown(float speed);
     void setTranslationWorld(glm::vec3 translation);
+    void getLookDirection(float speed);
+    glm::mat3 getRotation();
     void setView();
     void setPerspective(float fov, float width, float height, float near, float far);
     glm::mat4 getPerspective();

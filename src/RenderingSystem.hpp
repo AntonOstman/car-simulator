@@ -15,14 +15,16 @@ struct RenderTransforms
     glm::mat4 projection;
 };
 
-enum MeshType
+enum class MeshType
 {
-    CUBE
+    NONE,
+    CUBE,
 };
 
-enum ShaderType
+enum class ShaderType
 {
-    STANDARD
+    NONE,
+    STANDARD,
 };
 
 struct Mesh {

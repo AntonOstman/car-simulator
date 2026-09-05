@@ -88,7 +88,7 @@ int main()
     app.init();
 
     while (!glfwWindowShouldClose(window)) {
-        app.renderGame();
+        app.gameLoop();
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);

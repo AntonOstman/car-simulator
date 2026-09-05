@@ -116,8 +116,8 @@ void RenderingSystem::init()
     cube = RenderingSystem::createMesh(cube_verts);
     shader = RenderingSystem::createShader("src/shaders/shaderVertTexNorm.frag", "src/shaders/shaderVertTexNorm.vert");
 
-    meshes[CUBE] = cube;
-    shaders[STANDARD] = shader;
+    meshes[MeshType::CUBE] = cube;
+    shaders[ShaderType::STANDARD] = shader;
 }
 
 Shader RenderingSystem::createShader(std::string frag, std::string vert)
